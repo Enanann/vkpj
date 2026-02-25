@@ -16,8 +16,8 @@ if(ENABLE_CPP20_MODULE)
   set(CMAKE_CXX_SCAN_FOR_MODULES ON)
 endif()
 
-find_package (glfw3 REQUIRED)
-find_package (glm REQUIRED)
+find_package (glfw3 CONFIG REQUIRED)
+find_package (glm CONFIG REQUIRED)
 find_package (Vulkan REQUIRED)
 # find_package (tinyobjloader REQUIRED)
 # find_package (tinygltf REQUIRED)
@@ -83,7 +83,7 @@ endif()
 find_package(stb REQUIRED)
 set(STB_INCLUDEDIR ${stb_INCLUDE_DIRS})
 
-set(IMGUI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
+set(IMGUI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/imgui)
 set(IMGUI_SOURCES
     ${IMGUI_DIR}/imgui_demo.cpp
     ${IMGUI_DIR}/imgui_draw.cpp
