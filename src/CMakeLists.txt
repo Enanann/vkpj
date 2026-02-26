@@ -1,6 +1,8 @@
 set(SOURCES 
     main.cpp
     ${IMGUI_SOURCES}
+    app.cpp 
+    platform.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES})
