@@ -1,8 +1,10 @@
-#include "app.h"
+#include "app.hpp"
+#include "renderer.hpp"
+#include <memory>
 
 void Application::run() {
     Application::initWindow();
-    Application::initVulkan();
+    Application::initRenderer();
     Application::mainLoop();
     Application::cleanup();
 }
@@ -12,13 +14,15 @@ void Application::initWindow() {
 }
 
 void Application::mainLoop() {
-    while (!glfwWindowShouldClose(mWindow.getWindow())) {
-        glfwPollEvents();
+    while (!glfwWindowShouldClose(mWindow.getGLFWHandle())) {
+        mWindow.update();
+        mRenderer->draw();
     }
+    mRenderer->getDevice().getVkHandle().waitIdle();
 }
 
-void Application::initVulkan() {
-
+void Application::initRenderer() {
+    mRenderer = std::make_unique<Renderer>(mWindow);
 }
 
 void Application::cleanup() {

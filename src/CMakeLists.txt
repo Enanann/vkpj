@@ -3,12 +3,29 @@ set(SOURCES
     ${IMGUI_SOURCES}
     app.cpp 
     platform.cpp
+    read_binary.cpp 
+    
+    core/device.cpp 
+    core/glfw_surface.cpp 
+    core/instance.cpp 
+    core/shader.cpp 
+    core/swapchain.cpp 
+    core/commandbuffer.cpp
+    core/commandpool.cpp
+
+    pipeline/graphics_pipeline.cpp
+    
+    renderer/renderer.cpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE 
     ${CMAKE_CURRENT_SOURCE_DIR}/../external
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/core
+    ${CMAKE_CURRENT_SOURCE_DIR}/pipeline
+    ${CMAKE_CURRENT_SOURCE_DIR}/renderer
     ${IMGUI_DIR}
 )
 
