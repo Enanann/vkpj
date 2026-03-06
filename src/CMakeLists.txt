@@ -4,6 +4,7 @@ set(SOURCES
     app.cpp 
     platform.cpp
     read_binary.cpp 
+    vertex.cpp
     
     core/device.cpp 
     core/glfw_surface.cpp 
