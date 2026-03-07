@@ -102,7 +102,9 @@ void VulkanDevice::pickPhysicalDevice() {
     } else {
         mPhysicalDevice = *devIter;
         // std::cout << "Picked " << *devIter->getProperties().deviceName << std::endl;
-        std::cout << "Picked " + std::string(mPhysicalDevice.getProperties().deviceName) << '\n';
+        std::cout << "Picked "
+                  << mPhysicalDevice.getProperties().deviceName.data() 
+                  << '\n';
     }
 }
 

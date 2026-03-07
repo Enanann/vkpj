@@ -87,13 +87,13 @@ GraphicsPipeline::GraphicsPipeline(const VulkanDevice& device, Shader& shader, S
 
     // Pipeline rendering
     // Move data from the vector to the array:
-    vk::PipelineShaderStageCreateInfo shaderStages[mShader.getShaderStages().size()]; 
-    std::move(mShader.getShaderStages().begin(), mShader.getShaderStages().end(), shaderStages);
+    // vk::PipelineShaderStageCreateInfo shaderStages[mShader.getShaderStages().size()]; 
+    // std::move(mShader.getShaderStages().begin(), mShader.getShaderStages().end(), shaderStages);
     
     vk::StructureChain<vk::GraphicsPipelineCreateInfo, vk::PipelineRenderingCreateInfo> pipelineCreateInfoChain {
         {
             .stageCount = 2,
-            .pStages = shaderStages,
+            .pStages = mShader.getShaderStages().data(),
             .pVertexInputState = &vertexInputCreateInfo,
             .pInputAssemblyState = &inputAssemblyCreateInfo,
             .pViewportState = &viewportCreateInfo,
