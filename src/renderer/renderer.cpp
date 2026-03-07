@@ -22,6 +22,17 @@ Renderer::Renderer(Window& window)
     , mCommandPool{mVulkanDevice}
     // , mCommandBuffer{mVulkanDevice, mSwapchain, mCommandPool, mGraphicsPipeline}
     {
+    BufferConfig vertexConfig{
+        .usage         = vk::BufferUsageFlagBits::eVertexBuffer,
+        .memProperties = vk::MemoryPropertyFlagBits::eDeviceLocal
+    };
+    mVertexBuffer.emplace(Buffer::createBuffer(mVulkanDevice, mCommandPool, vertexConfig, gVertices));
+
+    BufferConfig indexConfig{
+        .usage         = vk::BufferUsageFlagBits::eIndexBuffer,
+        .memProperties = vk::MemoryPropertyFlagBits::eDeviceLocal
+    };
+    mIndexBuffer.emplace(Buffer::createBuffer(mVulkanDevice, mCommandPool, indexConfig, gIndices));
 
     vk::SemaphoreTypeCreateInfo semaphoreTypeCreateInfo{
         .semaphoreType = vk::SemaphoreType::eTimeline,
@@ -32,7 +43,7 @@ Renderer::Renderer(Window& window)
     mFrameDatas.reserve(MAX_FRAMES_IN_FLIGHT);
     for (auto i{0}; i < MAX_FRAMES_IN_FLIGHT; ++i) {
         mFrameDatas.emplace_back(
-            CommandBuffer(mVulkanDevice, mSwapchain, mCommandPool, mGraphicsPipeline),
+            CommandBuffer(mVulkanDevice, mSwapchain, mCommandPool, mGraphicsPipeline, mVertexBuffer, mIndexBuffer),
             vk::raii::Semaphore(mVulkanDevice.getVkHandle(), {.pNext = &semaphoreTypeCreateInfo}),
             0,
             vk::raii::Semaphore(mVulkanDevice.getVkHandle(), vk::SemaphoreCreateInfo())

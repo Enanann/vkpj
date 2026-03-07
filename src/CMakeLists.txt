@@ -13,6 +13,7 @@ set(SOURCES
     core/swapchain.cpp 
     core/commandbuffer.cpp
     core/commandpool.cpp
+    core/buffer.cpp
 
     pipeline/graphics_pipeline.cpp
     

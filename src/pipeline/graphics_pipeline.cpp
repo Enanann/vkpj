@@ -3,6 +3,7 @@
 #include "device.hpp"
 #include "shader.hpp"
 #include "swapchain.hpp"
+#include "vertex.hpp"
 
 #include "vulkan/vulkan.hpp"
 
@@ -15,7 +16,14 @@ GraphicsPipeline::GraphicsPipeline(const VulkanDevice& device, Shader& shader, S
     , mSwapchain{swapchain}
 {
     // Vertex Input
-    vk::PipelineVertexInputStateCreateInfo vertexInputCreateInfo;
+    auto bindingDescription{Vertex::getBindingDescription()};
+    auto attributeDescriptions{Vertex::getAttributeDescriptions()};
+    vk::PipelineVertexInputStateCreateInfo vertexInputCreateInfo{
+        .vertexBindingDescriptionCount   = 1,
+        .pVertexBindingDescriptions      = &bindingDescription,
+        .vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size()),
+        .pVertexAttributeDescriptions    = attributeDescriptions.data()
+    };
 
     // Input Assembly
     vk::PipelineInputAssemblyStateCreateInfo inputAssemblyCreateInfo {
