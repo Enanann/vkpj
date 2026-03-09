@@ -1,5 +1,6 @@
 #include "graphics_pipeline.hpp"
 
+#include "descriptor_layout.hpp"
 #include "device.hpp"
 #include "shader.hpp"
 #include "swapchain.hpp"
@@ -10,10 +11,11 @@
 #include <vector>
 #include <vulkan/vulkan_raii.hpp>
 
-GraphicsPipeline::GraphicsPipeline(const VulkanDevice& device, Shader& shader, Swapchain& swapchain) 
+GraphicsPipeline::GraphicsPipeline(const VulkanDevice& device, Shader& shader, Swapchain& swapchain, DescriptorSetLayout& setLayout) 
     : mVulkanDevice{device}
     , mShader{shader} 
     , mSwapchain{swapchain}
+    , mDescriptorSetLayout{setLayout}
 {
     // Vertex Input
     auto bindingDescription{Vertex::getBindingDescription()};
@@ -51,7 +53,7 @@ GraphicsPipeline::GraphicsPipeline(const VulkanDevice& device, Shader& shader, S
         .rasterizerDiscardEnable = vk::False,
         .polygonMode             = vk::PolygonMode::eFill,
         .cullMode                = vk::CullModeFlagBits::eBack,
-        .frontFace               = vk::FrontFace::eClockwise,
+        .frontFace               = vk::FrontFace::eCounterClockwise,
         .depthBiasEnable         = vk::False,
         .depthBiasSlopeFactor    = 1.0f,
         .lineWidth               = 1.0f
@@ -79,7 +81,8 @@ GraphicsPipeline::GraphicsPipeline(const VulkanDevice& device, Shader& shader, S
 
     // Pipeline layout
     vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo {
-        .setLayoutCount = 0,
+        .setLayoutCount = 1,
+        .pSetLayouts    = &*mDescriptorSetLayout.getVkHandle(),
         .pushConstantRangeCount = 0
     };
 
@@ -116,4 +119,8 @@ GraphicsPipeline::GraphicsPipeline(const VulkanDevice& device, Shader& shader, S
 
 const vk::raii::Pipeline& GraphicsPipeline::getVkHandle() const {
     return mGraphicsPipeline;
+}
+
+const vk::raii::PipelineLayout& GraphicsPipeline::getLayout() const {
+    return mPipelineLayout;
 }

@@ -5,6 +5,7 @@ set(SOURCES
     platform.cpp
     read_binary.cpp 
     vertex.cpp
+    input_manager.cpp
     
     core/device.cpp 
     core/glfw_surface.cpp 
@@ -14,6 +15,9 @@ set(SOURCES
     core/commandbuffer.cpp
     core/commandpool.cpp
     core/buffer.cpp
+    core/descriptor_layout.cpp
+    core/descriptor_pool.cpp
+    core/descriptor_set.cpp
 
     pipeline/graphics_pipeline.cpp
     

@@ -25,6 +25,8 @@ void Window::create() {
 
     glfwSetWindowUserPointer(mWindow, this);
     glfwSetFramebufferSizeCallback(mWindow, framebufferResizeCallback);
+    glfwSetCursorPosCallback(mWindow, cursorPositionCallback);
+    glfwSetScrollCallback(mWindow, scrollCallback);
 }
 
 void Window::update() {
@@ -46,7 +48,16 @@ bool Window::getResizeStatus() const {
 void Window::setResizeStatus(bool value) {
     mFramebufferResized = value;
 }
-    
+
+std::pair<double, double> Window::getMousePos() {
+    return {mMouseX, mMouseY};
+}
+
+double Window::getScrollOffset() {
+    return mScrollOffset;
+}
+
+
 GLFWwindow* Window::getGLFWHandle() const {
     return mWindow;
 }

@@ -24,6 +24,9 @@ Buffer::Buffer(const VulkanDevice& device, vk::DeviceSize size, const BufferConf
     };
     mMemory = vk::raii::DeviceMemory(mVulkanDevice.getVkHandle(), memoryAllocInfo);
     mBuffer.bindMemory(*mMemory, 0);
+    if (config.usage == vk::BufferUsageFlagBits::eUniformBuffer) {
+        mMemoryMapped.emplace(mMemory.mapMemory(0, size)); // persistent mapping
+    }
 }
 
 const vk::raii::Buffer&Buffer:: getVkHandle() const {

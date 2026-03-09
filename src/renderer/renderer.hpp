@@ -1,5 +1,8 @@
 #pragma once
 
+#include "descriptor_layout.hpp"
+#include "descriptor_pool.hpp"
+#include "descriptor_set.hpp"
 #include "platform.hpp"
 #include "instance.hpp"
 #include "glfw_surface.hpp"
@@ -13,6 +16,7 @@
 
 #include <optional>
 #include <vulkan/vulkan_raii.hpp>
+#include <glm/glm.hpp>
 
 #include <cstdint>
 
@@ -30,6 +34,8 @@ public:
     Renderer(Window&);
 
     void draw();
+    void setPan(glm::vec2&);
+    void setZoom(float);
 
     const VulkanDevice& getDevice() const;
 private:
@@ -39,13 +45,19 @@ private:
     VulkanDevice          mVulkanDevice;
     Swapchain             mSwapchain;
     Shader                mShader;
+    DescriptorSetLayout   mDescriptorSetLayout;
     GraphicsPipeline      mGraphicsPipeline;
     CommandPool           mCommandPool;
     std::optional<Buffer> mVertexBuffer;
     std::optional<Buffer> mIndexBuffer;
+    std::vector<std::optional<Buffer>> mUniformBuffers;
+    DescriptorPool             mDescriptorPool;
+    std::vector<DescriptorSet> mDescriptorSets;
+    std::vector<FrameData>     mFrameDatas;
+    uint32_t                   mCurrentFrame{0};
 
-    std::vector<FrameData> mFrameDatas;
-    uint32_t               mCurrentFrame{0};
+    glm::vec2 mPan{0.0f, 0.0f};
+    float     mZoom{45.0f};
 
     std::vector<vk::raii::Semaphore> mRenderFinishedSemaphores;
 };

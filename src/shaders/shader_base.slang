@@ -5,14 +5,23 @@ struct VertexInput {
 };
 
 struct VertexOutput {
-    float3 color;
     float4 sv_position : SV_Position;
+    float3 color;
 };
+
+struct UniformBuffer {
+    float4x4 model;
+    float4x4 view;
+    float4x4 proj;
+};
+[[vk_binding(0, 0)]]
+ConstantBuffer<UniformBuffer> ubo;
 
 [shader("vertex")]
 VertexOutput vertMain(VertexInput inp) {
     VertexOutput output;
-    output.sv_position = float4(inp.position, 0.0, 1.0);
+    // output.sv_position = float4(inp.position, 0.0, 1.0);
+    output.sv_position = mul(ubo.proj, mul(ubo.view, mul(ubo.model, float4(inp.position, 0.0, 1.0))));
     output.color = inp.color;
     return output;
 }
@@ -30,11 +39,6 @@ struct Particle {
     float2 velocity;
     float4 color;
 };
-
-struct UniformBuffer {
-    float deltaTime;
-};
-ConstantBuffer<UniformBuffer> ubo;
 
 struct ParticleSSBO {
     Particle particles;

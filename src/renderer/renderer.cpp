@@ -1,14 +1,22 @@
 #include "renderer.hpp"
+#include "buffer.hpp"
 #include "commandbuffer.hpp"
 #include "device.hpp"
+#include "glm/ext/matrix_clip_space.hpp"
+#include "glm/ext/matrix_transform.hpp"
+#include "glm/fwd.hpp"
 #include "vulkan/vulkan.hpp"
 #include "constant.hpp"
 
-#include <cassert>
 #include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_raii.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <cstring>
+#include <cassert>
 #include <stdexcept>
 #include <cstdint>
+// #include <chrono>
 
 
 Renderer::Renderer(Window& window) 
@@ -18,8 +26,10 @@ Renderer::Renderer(Window& window)
     , mVulkanDevice{mInstance, mGLFWSurface}
     , mSwapchain{mVulkanDevice, mGLFWSurface, mWindow}
     , mShader{mVulkanDevice, "build/src/shaders/slang.spv"}
-    , mGraphicsPipeline{mVulkanDevice, mShader, mSwapchain}
+    , mDescriptorSetLayout(mVulkanDevice, {.bindings = {{0, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex}}})
+    , mGraphicsPipeline{mVulkanDevice, mShader, mSwapchain, mDescriptorSetLayout}
     , mCommandPool{mVulkanDevice}
+    , mDescriptorPool(mVulkanDevice, {.sizes = {{vk::DescriptorType::eUniformBuffer, MAX_FRAMES_IN_FLIGHT}}, .maxSets = MAX_FRAMES_IN_FLIGHT})
     // , mCommandBuffer{mVulkanDevice, mSwapchain, mCommandPool, mGraphicsPipeline}
     {
     BufferConfig vertexConfig{
@@ -34,20 +44,31 @@ Renderer::Renderer(Window& window)
     };
     mIndexBuffer.emplace(Buffer::createBuffer(mVulkanDevice, mCommandPool, indexConfig, gIndices));
 
+    vk::DeviceSize uniformBufferSize{sizeof(UniformBufferObject)};
     vk::SemaphoreTypeCreateInfo semaphoreTypeCreateInfo{
         .semaphoreType = vk::SemaphoreType::eTimeline,
         .initialValue  = 0
     };
-
     mFrameDatas.clear();
     mFrameDatas.reserve(MAX_FRAMES_IN_FLIGHT);
-    for (auto i{0}; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+    mDescriptorSets.clear();
+    mDescriptorSets.reserve(MAX_FRAMES_IN_FLIGHT);
+    for (size_t i{0}; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+        mUniformBuffers.emplace_back(Buffer::createUniformBuffer(mVulkanDevice, uniformBufferSize));
+        mDescriptorSets.emplace_back(mVulkanDevice, mDescriptorSetLayout, mDescriptorPool);
         mFrameDatas.emplace_back(
-            CommandBuffer(mVulkanDevice, mSwapchain, mCommandPool, mGraphicsPipeline, mVertexBuffer, mIndexBuffer),
+            CommandBuffer(mVulkanDevice, mSwapchain, mCommandPool, mGraphicsPipeline, mVertexBuffer, mIndexBuffer, mDescriptorSets[i]),
             vk::raii::Semaphore(mVulkanDevice.getVkHandle(), {.pNext = &semaphoreTypeCreateInfo}),
             0,
             vk::raii::Semaphore(mVulkanDevice.getVkHandle(), vk::SemaphoreCreateInfo())
         );
+        const DescriptorBufferUpdateConfig updateConfig{
+            .binding = 0,
+            .type = vk::DescriptorType::eUniformBuffer,
+            .buffer = mUniformBuffers[i]->getVkHandle(),
+            .size = sizeof(UniformBufferObject)
+        };
+        mDescriptorSets[i].updateBuffer(updateConfig);
     }
 
     for (auto i{0}; i < mSwapchain.getImages().size(); ++i) {
@@ -81,7 +102,20 @@ void Renderer::draw() {
         assert(result == vk::Result::eTimeout || result == vk::Result::eNotReady);
         throw std::runtime_error("Failed to acquire swapchain image");
     }
+    
+    UniformBufferObject ubo{};
+    // static auto startTime{std::chrono::high_resolution_clock::now()};
 
+    // auto currentTime{std::chrono::high_resolution_clock::now()};
+    // float time{std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count()};
+    
+    ubo.model = glm::translate(glm::mat4(1.0f), glm::vec3(mPan, 0.0f));
+    // std::cout << mPan.x << ' ' << mPan.y << '\n';
+    ubo.view = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    ubo.proj = glm::perspective(glm::radians(mZoom), static_cast<float>(mSwapchain.getExtent().width) / static_cast<float>(mSwapchain.getExtent().height), 0.1f, 10.0f);
+    ubo.proj[1][1] *= -1;
+    mUniformBuffers[mCurrentFrame]->update(ubo);
+    
     frame.commandBuffer.getVkHandle().reset();
     frame.commandBuffer.record(imageIndex);
 
@@ -132,12 +166,21 @@ void Renderer::draw() {
     if (result == vk::Result::eSuboptimalKHR || result == vk::Result::eErrorOutOfDateKHR || mWindow.getResizeStatus()) {
         mWindow.setResizeStatus(false);
         mSwapchain.recreate();
+        return;
     } else {
         // There are no other success code than eSuccess; on any error code, presentKHR already threw an exception
         assert(result == vk::Result::eSuccess);
     }
 
     mCurrentFrame = (mCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+}
+
+void Renderer::setPan(glm::vec2& v) {
+    mPan = glm::vec2(v);
+}
+
+void Renderer::setZoom(float z) {
+    mZoom = z;
 }
 
 const VulkanDevice& Renderer::getDevice() const {

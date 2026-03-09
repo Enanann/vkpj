@@ -1,6 +1,7 @@
 #include "commandbuffer.hpp"
 
 #include "constant.hpp"
+#include "descriptor_set.hpp"
 #include "device.hpp"
 #include "commandpool.hpp"
 #include "pipeline/graphics_pipeline.hpp"
@@ -11,13 +12,14 @@
 #include <stdexcept>
 #include <vulkan/vulkan_raii.hpp>
 
-CommandBuffer::CommandBuffer(const VulkanDevice& device, Swapchain& swapchain, const CommandPool& commandPool, const GraphicsPipeline& gPipeline, const std::optional<Buffer>& vertexBuffer, const std::optional<Buffer>& indexBuffer) 
+CommandBuffer::CommandBuffer(const VulkanDevice& device, Swapchain& swapchain, const CommandPool& commandPool, const GraphicsPipeline& gPipeline, const std::optional<Buffer>& vertexBuffer, const std::optional<Buffer>& indexBuffer, const DescriptorSet& descriptorSet) 
     : mVulkanDevice{device}
     , mSwapchain{swapchain}
     , mCommandPool{commandPool} 
     , mGraphicsPipeline{gPipeline}
     , mVertexBuffer{vertexBuffer}
     , mIndexBuffer{indexBuffer}
+    , mDescriptorSet{descriptorSet}
 {
     vk::CommandBufferAllocateInfo allocInfo{
         .commandPool        = mCommandPool.getVkHandle(),
@@ -67,6 +69,8 @@ void CommandBuffer::record(uint32_t imageIndex) {
 
     mCommandBuffer.bindVertexBuffers(0, *mVertexBuffer->getVkHandle(), {0});
     mCommandBuffer.bindIndexBuffer(*mIndexBuffer->getVkHandle(), 0, vk::IndexType::eUint16);
+
+    mCommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *mGraphicsPipeline.getLayout(), 0, *mDescriptorSet.getVkHandle(), nullptr);
 
     mCommandBuffer.drawIndexed(gIndices.size(), 1, 0, 0, 0);
 
