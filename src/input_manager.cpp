@@ -25,7 +25,7 @@ void InputManager::processInput() {
 
     mLastMousePos = currentPos;
 
-    mZoom -= static_cast<float>(mWindow.getScrollOffset()) * mZoomSpeed;
+    mZoom = static_cast<float>(mWindow.getScrollOffset());
     if (mZoom < 1.0f) {
         mZoom = 1.0f;
     }

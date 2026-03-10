@@ -14,5 +14,4 @@ private:
     glm::vec2 mPan{0.0f, 0.0f};
     glm::vec2 mLastMousePos;
     float     mZoom{45.0f};
-    float     mZoomSpeed{0.05f};
 };

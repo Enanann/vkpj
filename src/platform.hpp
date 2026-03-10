@@ -6,6 +6,7 @@
 
 inline const uint32_t MIN_WIDTH  = 800;
 inline const uint32_t MIN_HEIGHT = 600;
+inline const float    ZOOM_SPEED = 0.7f;
 
 class Window {
 public:
@@ -34,7 +35,7 @@ public:
 
     static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
         auto _window{reinterpret_cast<Window*>(glfwGetWindowUserPointer(window))};
-        _window->mScrollOffset = yoffset;
+        _window->mScrollOffset -= yoffset * ZOOM_SPEED;
     }
 
     GLFWwindow* getGLFWHandle() const;
@@ -42,6 +43,6 @@ private:
     GLFWwindow* mWindow{nullptr};
     double mMouseX;
     double mMouseY;
-    double mScrollOffset;
+    double mScrollOffset{45.0f};
     bool mFramebufferResized{false};
 };
