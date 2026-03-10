@@ -3,6 +3,8 @@
 #include "descriptor_layout.hpp"
 #include "descriptor_pool.hpp"
 #include "device.hpp"
+#include "sampler.hpp"
+#include "image.hpp"
 #include "vulkan/vulkan.hpp"
 #include <vulkan/vulkan_raii.hpp>
 
@@ -34,6 +36,24 @@ void DescriptorSet::updateBuffer(const DescriptorBufferUpdateConfig& config) {
         .descriptorCount = 1,
         .descriptorType  = config.type,
         .pBufferInfo     = &bufferInfo
+    };
+    mVulkanDevice.getVkHandle().updateDescriptorSets(descriptorWrite, {});
+}
+
+void DescriptorSet::updateImage(const DescriptorImageUpdateConfig& config) {
+    vk::DescriptorImageInfo imageInfo{
+        .sampler = config.sampler.getVkHandle(),
+        .imageView = config.image.getImageView(),
+        .imageLayout = config.layout
+    };
+
+    vk::WriteDescriptorSet descriptorWrite{
+        .dstSet          = mDescriptorSet,
+        .dstBinding      = config.binding,
+        .dstArrayElement = 0,
+        .descriptorCount = 1,
+        .descriptorType  = config.type,
+        .pImageInfo      = &imageInfo
     };
     mVulkanDevice.getVkHandle().updateDescriptorSets(descriptorWrite, {});
 }

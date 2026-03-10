@@ -1,10 +1,12 @@
 #include "renderer.hpp"
 #include "buffer.hpp"
 #include "commandbuffer.hpp"
+#include "descriptor_set.hpp"
 #include "device.hpp"
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/fwd.hpp"
+#include "image_loader.hpp"
 #include "vulkan/vulkan.hpp"
 #include "constant.hpp"
 
@@ -26,10 +28,13 @@ Renderer::Renderer(Window& window)
     , mVulkanDevice{mInstance, mGLFWSurface}
     , mSwapchain{mVulkanDevice, mGLFWSurface, mWindow}
     , mShader{mVulkanDevice, "build/src/shaders/slang.spv"}
-    , mDescriptorSetLayout(mVulkanDevice, {.bindings = {{0, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex}}})
+    , mDescriptorSetLayout(mVulkanDevice, {.bindings = {{0, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex}, 
+                                                        {1, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment}}})
     , mGraphicsPipeline{mVulkanDevice, mShader, mSwapchain, mDescriptorSetLayout}
     , mCommandPool{mVulkanDevice}
-    , mDescriptorPool(mVulkanDevice, {.sizes = {{vk::DescriptorType::eUniformBuffer, MAX_FRAMES_IN_FLIGHT}}, .maxSets = MAX_FRAMES_IN_FLIGHT})
+    , mDescriptorPool(mVulkanDevice, {.sizes = {{vk::DescriptorType::eUniformBuffer, MAX_FRAMES_IN_FLIGHT}, 
+                                                {vk::DescriptorType::eCombinedImageSampler, MAX_FRAMES_IN_FLIGHT}}, .maxSets = MAX_FRAMES_IN_FLIGHT})
+    , mImage(mVulkanDevice, mCommandPool, {ImageLoader::loadImageFromPath("textures/purple_face_crying.png")})
     // , mCommandBuffer{mVulkanDevice, mSwapchain, mCommandPool, mGraphicsPipeline}
     {
     BufferConfig vertexConfig{
@@ -62,13 +67,22 @@ Renderer::Renderer(Window& window)
             0,
             vk::raii::Semaphore(mVulkanDevice.getVkHandle(), vk::SemaphoreCreateInfo())
         );
-        const DescriptorBufferUpdateConfig updateConfig{
+        const DescriptorBufferUpdateConfig bufferUpdateConfig{
             .binding = 0,
             .type = vk::DescriptorType::eUniformBuffer,
             .buffer = mUniformBuffers[i]->getVkHandle(),
             .size = sizeof(UniformBufferObject)
         };
-        mDescriptorSets[i].updateBuffer(updateConfig);
+        mDescriptorSets[i].updateBuffer(bufferUpdateConfig);
+
+        const DescriptorImageUpdateConfig imageUpdateConfig{
+            .binding = 1,
+            .type = vk::DescriptorType::eCombinedImageSampler,
+            .image = mImage,
+            .layout = vk::ImageLayout::eShaderReadOnlyOptimal,
+            .sampler = mImage.getSampler()
+        };
+        mDescriptorSets[i].updateImage(imageUpdateConfig);
     }
 
     for (auto i{0}; i < mSwapchain.getImages().size(); ++i) {

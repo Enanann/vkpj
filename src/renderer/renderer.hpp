@@ -3,6 +3,7 @@
 #include "descriptor_layout.hpp"
 #include "descriptor_pool.hpp"
 #include "descriptor_set.hpp"
+#include "image.hpp"
 #include "platform.hpp"
 #include "instance.hpp"
 #include "glfw_surface.hpp"
@@ -53,6 +54,7 @@ private:
     std::vector<std::optional<Buffer>> mUniformBuffers;
     DescriptorPool             mDescriptorPool;
     std::vector<DescriptorSet> mDescriptorSets;
+    Image                      mImage;
     std::vector<FrameData>     mFrameDatas;
     uint32_t                   mCurrentFrame{0};
 

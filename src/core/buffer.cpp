@@ -1,4 +1,5 @@
 #include "buffer.hpp"
+#include "image.hpp"
 #include "commandbuffer.hpp"
 #include "commandpool.hpp"
 #include "device.hpp"
@@ -53,4 +54,23 @@ void Buffer::copy(const Buffer& buffer, const CommandPool& commandPool, vk::Devi
     // src, dst, regions
     copyCommandBuffer.getVkHandle().copyBuffer(buffer.getVkHandle(), this->mBuffer, vk::BufferCopy{.srcOffset = 0, .dstOffset = 0, .size = size});
     copyCommandBuffer.executeAndWait();
+}
+
+void Buffer::copyToImage(SingleTimeCommandBuffer& copyCommandBuffer, Image* image, const CommandPool& commandPool, uint32_t width, uint32_t height) {
+    vk::BufferImageCopy2 region{
+        .bufferOffset      = 0,
+        .bufferRowLength   = 0,
+        .bufferImageHeight = 0,
+        .imageSubresource  = {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
+        .imageOffset       = {0, 0, 0},
+        .imageExtent       = {width, height, 1}
+    };
+    vk::CopyBufferToImageInfo2 copyInfo{
+        .srcBuffer      = mBuffer,
+        .dstImage       = image->getImage(),
+        .dstImageLayout = vk::ImageLayout::eTransferDstOptimal, 
+        .regionCount    = 1,
+        .pRegions       = &region
+    };
+    copyCommandBuffer.getVkHandle().copyBufferToImage2(copyInfo);
 }

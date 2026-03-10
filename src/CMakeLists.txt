@@ -4,6 +4,7 @@ set(SOURCES
     app.cpp 
     platform.cpp
     read_binary.cpp 
+    image_loader.cpp
     vertex.cpp
     input_manager.cpp
     
@@ -18,6 +19,9 @@ set(SOURCES
     core/descriptor_layout.cpp
     core/descriptor_pool.cpp
     core/descriptor_set.cpp
+    
+    image/image.cpp
+    image/sampler.cpp
 
     pipeline/graphics_pipeline.cpp
     
@@ -32,6 +36,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/core
     ${CMAKE_CURRENT_SOURCE_DIR}/pipeline
     ${CMAKE_CURRENT_SOURCE_DIR}/renderer
+    ${CMAKE_CURRENT_SOURCE_DIR}/image
     ${IMGUI_DIR}
 )
 
