@@ -16,11 +16,12 @@ public:
     void recreate();
     void cleanup();
     vk::Format& getFormat();
-    std::vector<vk::Image>& getImages();
-    std::vector<vk::raii::ImageView>& getImageViews();
-    vk::Extent2D& getExtent();
+    const std::vector<vk::Image>& getImages() const;
+    const std::vector<vk::raii::ImageView>& getImageViews() const;
+    const vk::Extent2D& getExtent() const;
+    const vk::Format& getSwapchainImageFormat() const;
 
-    vk::raii::SwapchainKHR& getVkHandle();
+    const vk::raii::SwapchainKHR& getVkHandle() const;
 
 private:
     vk::SurfaceFormatKHR chooseSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats);

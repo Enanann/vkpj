@@ -36,6 +36,7 @@ Renderer::Renderer(Window& window)
     , mDescriptorPool(mVulkanDevice, {.sizes = {{vk::DescriptorType::eUniformBuffer, MAX_FRAMES_IN_FLIGHT}, 
                                                 {vk::DescriptorType::eCombinedImageSampler, MAX_FRAMES_IN_FLIGHT}}, .maxSets = MAX_FRAMES_IN_FLIGHT})
     , mImage(mVulkanDevice, mCommandPool, {ImageLoader::loadImageFromPath("textures/Ichika6.jpeg")})
+    , mImGuiSystem(this)
     // , mCommandBuffer{mVulkanDevice, mSwapchain, mCommandPool, mGraphicsPipeline}
     {
     BufferConfig vertexConfig{
@@ -102,6 +103,11 @@ void Renderer::_calculateScaling() {
 
     mScale = glm::vec2(scaleX, scaleY);
     // std::cout << mScale.x << ' ' << mScale.y << '\n';
+}
+
+void Renderer::drawImGui() {
+    mImGuiSystem.newFrame();
+    mImGuiSystem.render();
 }
 
 void Renderer::draw() {
@@ -211,6 +217,18 @@ void Renderer::setZoom(float z) {
     mZoom = z;
 }
 
+const Window& Renderer::getWindow() const {
+    return mWindow;
+}
+
+const Instance& Renderer::getInstance() const {
+    return mInstance;
+}
+
 const VulkanDevice& Renderer::getDevice() const {
     return mVulkanDevice;
+}
+
+const Swapchain& Renderer::getSwapchain() const {
+    return mSwapchain;
 }

@@ -57,7 +57,7 @@ void Swapchain::cleanup() {
     // to the temporary, which is then destroyed at the end of the full-expression.
 }
 
-vk::raii::SwapchainKHR& Swapchain::getVkHandle() {
+const vk::raii::SwapchainKHR& Swapchain::getVkHandle() const {
     return mSwapchain;
 }
 
@@ -162,17 +162,18 @@ vk::Format& Swapchain::getFormat() {
     return mSwapchainImageFormat;
 }
 
-std::vector<vk::Image>& Swapchain::getImages() {
+const std::vector<vk::Image>& Swapchain::getImages() const {
     return mSwapchainImages;
 }
 
-std::vector<vk::raii::ImageView>& Swapchain::getImageViews() {
+const std::vector<vk::raii::ImageView>& Swapchain::getImageViews() const {
     return mSwapchainImageViews;
 }
 
-vk::Extent2D& Swapchain::getExtent() {
+const vk::Extent2D& Swapchain::getExtent() const {
     return mSwapchainExtent;
 }
 
-
-
+const vk::Format& Swapchain::getSwapchainImageFormat() const {
+    return mSwapchainImageFormat;
+}

@@ -8,6 +8,9 @@
 #include "swapchain.hpp"
 #include "buffer.hpp"
 #include "vulkan/vulkan.hpp"
+#include "imgui.h"
+#include "backends/imgui_impl_vulkan.h"
+#include "backends/imgui_impl_glfw.h"
 #include <cstdint>
 #include <stdexcept>
 #include <vulkan/vulkan_raii.hpp>
@@ -73,6 +76,9 @@ void CommandBuffer::record(uint32_t imageIndex) {
     mCommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *mGraphicsPipeline.getLayout(), 0, *mDescriptorSet.getVkHandle(), nullptr);
 
     mCommandBuffer.drawIndexed(gIndices.size(), 1, 0, 0, 0);
+
+    // ImGui
+    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), *mCommandBuffer);
 
     mCommandBuffer.endRendering();
 

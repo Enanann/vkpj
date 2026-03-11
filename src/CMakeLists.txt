@@ -6,6 +6,7 @@ set(SOURCES
     read_binary.cpp 
     image_loader.cpp
     vertex.cpp
+    imgui_system.cpp
     input_manager.cpp
     
     core/device.cpp 

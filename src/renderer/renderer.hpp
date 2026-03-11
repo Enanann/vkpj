@@ -4,6 +4,7 @@
 #include "descriptor_pool.hpp"
 #include "descriptor_set.hpp"
 #include "image.hpp"
+#include "imgui_system.hpp"
 #include "platform.hpp"
 #include "instance.hpp"
 #include "glfw_surface.hpp"
@@ -34,11 +35,15 @@ class Renderer {
 public:
     Renderer(Window&);
 
+    void drawImGui();
     void draw();
     void setPan(glm::vec2&);
     void setZoom(float);
 
+    const Window&       getWindow() const;
+    const Instance&     getInstance() const;
     const VulkanDevice& getDevice() const;
+    const Swapchain&    getSwapchain() const;
 private:
     void _calculateScaling();
 
@@ -63,6 +68,8 @@ private:
     glm::vec2 mScale{1.0f, 1.0f};
     glm::vec2 mPan{0.0f, 0.0f};
     float     mZoom{45.0f};
+
+    ImGuiSystem mImGuiSystem;
 
     std::vector<vk::raii::Semaphore> mRenderFinishedSemaphores;
 };

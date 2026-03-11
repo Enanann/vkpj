@@ -27,6 +27,7 @@ void Application::mainLoop() {
     while (!glfwWindowShouldClose(mWindow.getGLFWHandle())) {
         mWindow.update();
         mInputRenderer->processInput();
+        mRenderer->drawImGui();
         mRenderer->draw();
     }
     mRenderer->getDevice().getVkHandle().waitIdle();
