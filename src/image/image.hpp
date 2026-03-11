@@ -25,6 +25,7 @@ class Image {
 public:
     Image(const VulkanDevice&, const CommandPool&, const ImageConfig&);
 
+    const ImageLoader& getImageLoader() const;
     const vk::raii::Image& getImage() const;
     const vk::raii::ImageView& getImageView() const;
     const Sampler& getSampler() const;
@@ -35,6 +36,7 @@ private:
     const VulkanDevice& mVulkanDevice;
     const CommandPool&  mCommandPool;
 
+    const ImageLoader      mImageLoader;
     vk::raii::Image        mImage{nullptr};
     vk::raii::DeviceMemory mImageMemory{nullptr};
     vk::raii::ImageView    mImageView{nullptr};

@@ -40,6 +40,8 @@ public:
 
     const VulkanDevice& getDevice() const;
 private:
+    void _calculateScaling();
+
     Window&               mWindow;
     Instance              mInstance;
     GLFWSurface           mGLFWSurface;
@@ -58,6 +60,7 @@ private:
     std::vector<FrameData>     mFrameDatas;
     uint32_t                   mCurrentFrame{0};
 
+    glm::vec2 mScale{1.0f, 1.0f};
     glm::vec2 mPan{0.0f, 0.0f};
     float     mZoom{45.0f};
 

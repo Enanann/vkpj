@@ -18,6 +18,7 @@
 #include <cassert>
 #include <stdexcept>
 #include <cstdint>
+// #include <iostream>
 // #include <chrono>
 
 
@@ -34,7 +35,7 @@ Renderer::Renderer(Window& window)
     , mCommandPool{mVulkanDevice}
     , mDescriptorPool(mVulkanDevice, {.sizes = {{vk::DescriptorType::eUniformBuffer, MAX_FRAMES_IN_FLIGHT}, 
                                                 {vk::DescriptorType::eCombinedImageSampler, MAX_FRAMES_IN_FLIGHT}}, .maxSets = MAX_FRAMES_IN_FLIGHT})
-    , mImage(mVulkanDevice, mCommandPool, {ImageLoader::loadImageFromPath("textures/purple_face_crying.png")})
+    , mImage(mVulkanDevice, mCommandPool, {ImageLoader::loadImageFromPath("textures/Ichika6.jpeg")})
     // , mCommandBuffer{mVulkanDevice, mSwapchain, mCommandPool, mGraphicsPipeline}
     {
     BufferConfig vertexConfig{
@@ -88,6 +89,19 @@ Renderer::Renderer(Window& window)
     for (auto i{0}; i < mSwapchain.getImages().size(); ++i) {
         mRenderFinishedSemaphores.emplace_back(mVulkanDevice.getVkHandle(), vk::SemaphoreCreateInfo());
     }
+    _calculateScaling();
+}
+
+void Renderer::_calculateScaling() {
+    float _w{static_cast<float>(mImage.getImageLoader().getResult().texWidth)};
+    float _h{static_cast<float>(mImage.getImageLoader().getResult().texHeight)};
+    float imageAspect{_w / _h};
+    
+    float scaleX = (imageAspect > 1) ? 1 : imageAspect;
+    float scaleY = (imageAspect > 1) ? 1 / imageAspect : 1;
+
+    mScale = glm::vec2(scaleX, scaleY);
+    // std::cout << mScale.x << ' ' << mScale.y << '\n';
 }
 
 void Renderer::draw() {
@@ -124,7 +138,7 @@ void Renderer::draw() {
     // float time{std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count()};
     
     ubo.model = glm::translate(glm::mat4(1.0f), glm::vec3(mPan, 0.0f));
-    // std::cout << mPan.x << ' ' << mPan.y << '\n';
+    ubo.model = glm::scale(ubo.model, glm::vec3(mScale, 1.0f));
     ubo.view = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     ubo.proj = glm::perspective(glm::radians(mZoom), static_cast<float>(mSwapchain.getExtent().width) / static_cast<float>(mSwapchain.getExtent().height), 0.1f, 10.0f);
     ubo.proj[1][1] *= -1;

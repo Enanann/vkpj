@@ -4,13 +4,18 @@
 #include "commandbuffer.hpp"
 #include "commandpool.hpp"
 #include "device.hpp"
+#include "image_loader.hpp"
 #include "vulkan/vulkan.hpp"
 #include <stdexcept>
 #include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_raii.hpp>
 
 
-Image::Image(const VulkanDevice& device, const CommandPool& commandPool, const ImageConfig& config) : mVulkanDevice{device}, mCommandPool{commandPool} {
+Image::Image(const VulkanDevice& device, const CommandPool& commandPool, const ImageConfig& config) 
+    : mVulkanDevice{device}
+    , mCommandPool{commandPool}
+    , mImageLoader{config.image} 
+{
     const auto& image{config.image};
     const auto& imageRes{image.getResult()};
 
@@ -63,6 +68,10 @@ Image::Image(const VulkanDevice& device, const CommandPool& commandPool, const I
     mImageView = vk::raii::ImageView(mVulkanDevice.getVkHandle(), imageViewCreateInfo);
 
     mSampler.emplace(Sampler(mVulkanDevice, {}));
+}
+
+const ImageLoader& Image::getImageLoader() const {
+    return mImageLoader;
 }
 
 const vk::raii::Image& Image::getImage() const {
