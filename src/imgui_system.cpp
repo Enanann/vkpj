@@ -10,8 +10,9 @@
 #include <cstdint>
 #include <stdexcept>
 #include <vulkan/vulkan_core.h>
+#include <iostream>
 
-ImGuiSystem::ImGuiSystem(const Renderer* renderer) 
+ImGuiSystem::ImGuiSystem(Renderer* renderer) 
     : mRenderer{renderer}
     , mDescriptorPool{mRenderer->getDevice(), {.sizes = {{vk::DescriptorType::eSampler, 1000},
 			                                    {vk::DescriptorType::eCombinedImageSampler, 1000},
@@ -82,6 +83,21 @@ void ImGuiSystem::newFrame() {
 void ImGuiSystem::render() {
     ImGui::ShowDemoWindow(&mShowDemoWindow);
 
+    if(ImGui::Begin("File browser")) {
+        // open file dialog when user clicks this button
+        if(ImGui::Button("open file dialog"))
+            mFilebrowser.Open();
+    }
+    ImGui::End();
+        
+    mFilebrowser.Display();
+    
+    if(mFilebrowser.HasSelected()) {
+        std::cout << "Selected filename" << mFilebrowser.GetSelected().string() << std::endl;
+        mRenderer->changeImage(mFilebrowser.GetSelected());
+        mFilebrowser.ClearSelected();
+    }
+
     ImGui::Render();
 }
 
@@ -91,7 +107,8 @@ void ImGuiSystem::setupDocking() {
     bool opt_fullscreen = opt_fullscreen_persistant;
     static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_PassthruCentralNode;
 
-    ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking;
+    // window_flags |= ImGuiWindowFlags_MenuBar;
     if (opt_fullscreen) {
         ImGuiViewport* viewport = ImGui::GetMainViewport();
         ImGui::SetNextWindowPos(viewport->Pos);
@@ -136,4 +153,10 @@ void ImGuiSystem::setupDocking() {
     // }
 
     ImGui::End();
+}
+
+void ImGuiSystem::cleanup() {
+    ImGui_ImplVulkan_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
 }
