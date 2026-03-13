@@ -1,15 +1,18 @@
 #include "renderer.hpp"
 #include "buffer.hpp"
 #include "commandbuffer.hpp"
+#include "commandpool.hpp"
 #include "descriptor_set.hpp"
 #include "device.hpp"
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/fwd.hpp"
+#include "image.hpp"
 #include "image_loader.hpp"
 #include "vulkan/vulkan.hpp"
 #include "constant.hpp"
 
+#include <cstddef>
 #include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_raii.hpp>
 #include <glm/glm.hpp>
@@ -35,10 +38,11 @@ Renderer::Renderer(Window& window)
     , mCommandPool{mVulkanDevice}
     , mDescriptorPool(mVulkanDevice, {.sizes = {{vk::DescriptorType::eUniformBuffer, MAX_FRAMES_IN_FLIGHT}, 
                                                 {vk::DescriptorType::eCombinedImageSampler, MAX_FRAMES_IN_FLIGHT}}, .maxSets = MAX_FRAMES_IN_FLIGHT})
-    , mImage(mVulkanDevice, mCommandPool, {ImageLoader::loadImageFromPath("textures/Ichika6.jpeg")})
+    // , mImage(mVulkanDevice, mCommandPool, {ImageLoader::loadImageFromPath("textures/Ichika6.jpeg")})
     , mImGuiSystem(this)
     // , mCommandBuffer{mVulkanDevice, mSwapchain, mCommandPool, mGraphicsPipeline}
     {
+    mImage.emplace(mVulkanDevice, mCommandPool, ImageConfig{ImageLoader::loadImageFromPath("textures/Ichika6.jpeg")});
     BufferConfig vertexConfig{
         .usage         = vk::BufferUsageFlagBits::eVertexBuffer,
         .memProperties = vk::MemoryPropertyFlagBits::eDeviceLocal
@@ -80,9 +84,9 @@ Renderer::Renderer(Window& window)
         const DescriptorImageUpdateConfig imageUpdateConfig{
             .binding = 1,
             .type = vk::DescriptorType::eCombinedImageSampler,
-            .image = mImage,
+            .image = *mImage,
             .layout = vk::ImageLayout::eShaderReadOnlyOptimal,
-            .sampler = mImage.getSampler()
+            .sampler = mImage->getSampler()
         };
         mDescriptorSets[i].updateImage(imageUpdateConfig);
     }
@@ -94,8 +98,8 @@ Renderer::Renderer(Window& window)
 }
 
 void Renderer::_calculateScaling() {
-    float _w{static_cast<float>(mImage.getImageLoader().getResult().texWidth)};
-    float _h{static_cast<float>(mImage.getImageLoader().getResult().texHeight)};
+    float _w{static_cast<float>(mImage->getImageLoader().getResult().texWidth)};
+    float _h{static_cast<float>(mImage->getImageLoader().getResult().texHeight)};
     float imageAspect{_w / _h};
     
     float scaleX = (imageAspect > 1) ? 1 : imageAspect;
@@ -231,4 +235,34 @@ const VulkanDevice& Renderer::getDevice() const {
 
 const Swapchain& Renderer::getSwapchain() const {
     return mSwapchain;
+}
+
+const CommandPool& Renderer::getCommandPool() const {
+    return mCommandPool;
+}
+
+void Renderer::changeImage(const std::filesystem::path& path) {
+    ImageConfig imageConfig{
+        .image = ImageLoader::loadImageFromPath(path)
+    };
+    mVulkanDevice.getVkHandle().waitIdle();
+
+    mImage.emplace(mVulkanDevice, mCommandPool, imageConfig);
+
+    for (size_t i{0}; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+        const DescriptorImageUpdateConfig imageUpdateConfig{
+            .binding = 1,
+            .type = vk::DescriptorType::eCombinedImageSampler,
+            .image = *mImage,
+            .layout = vk::ImageLayout::eShaderReadOnlyOptimal,
+            .sampler = mImage->getSampler()
+        };
+        mDescriptorSets[i].updateImage(imageUpdateConfig);
+    }
+    _calculateScaling();
+    mVulkanDevice.getVkHandle().waitIdle();
+}
+
+void Renderer::cleanup() {
+    mImGuiSystem.cleanup();
 }

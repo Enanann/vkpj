@@ -16,6 +16,7 @@
 #include "shader.hpp"
 #include "buffer.hpp"
 
+#include <filesystem>
 #include <optional>
 #include <vulkan/vulkan_raii.hpp>
 #include <glm/glm.hpp>
@@ -40,10 +41,15 @@ public:
     void setPan(glm::vec2&);
     void setZoom(float);
 
+    void changeImage(const std::filesystem::path&);
+
     const Window&       getWindow() const;
     const Instance&     getInstance() const;
     const VulkanDevice& getDevice() const;
     const Swapchain&    getSwapchain() const;
+    const CommandPool&  getCommandPool() const;
+
+    void cleanup();
 private:
     void _calculateScaling();
 
@@ -61,7 +67,7 @@ private:
     std::vector<std::optional<Buffer>> mUniformBuffers;
     DescriptorPool             mDescriptorPool;
     std::vector<DescriptorSet> mDescriptorSets;
-    Image                      mImage;
+    std::optional<Image>       mImage;
     std::vector<FrameData>     mFrameDatas;
     uint32_t                   mCurrentFrame{0};
 

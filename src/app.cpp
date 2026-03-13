@@ -31,6 +31,7 @@ void Application::mainLoop() {
         mRenderer->draw();
     }
     mRenderer->getDevice().getVkHandle().waitIdle();
+    mRenderer->cleanup();
 }
 
 void Application::cleanup() {
