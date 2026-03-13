@@ -13,7 +13,7 @@ class CommandPool;
 class Sampler;
 
 struct ImageConfig {
-    const ImageLoader&      image;
+    const ImageLoader       image;
     vk::Format              format = vk::Format::eR8G8B8A8Srgb;
     vk::ImageUsageFlags     usage  = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst;
     vk::ImageTiling         tiling = vk::ImageTiling::eOptimal;
@@ -24,6 +24,7 @@ struct ImageConfig {
 class Image {
 public:
     Image(const VulkanDevice&, const CommandPool&, const ImageConfig&);
+    ~Image();
 
     const ImageLoader& getImageLoader() const;
     const vk::raii::Image& getImage() const;

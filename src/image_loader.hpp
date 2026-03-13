@@ -14,7 +14,6 @@ struct ImageLoadResult {
 class ImageLoader {
 public:
     ImageLoader(std::filesystem::path, ImageLoadResult);
-    ~ImageLoader();
 
     const ImageLoadResult& getResult() const;
 

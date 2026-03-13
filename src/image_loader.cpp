@@ -8,10 +8,6 @@ ImageLoader::ImageLoader(std::filesystem::path path, ImageLoadResult result) : m
 
 }
 
-ImageLoader::~ImageLoader() {
-    stbi_image_free(mImageLoadResult.pixels);
-}
-
 const ImageLoadResult& ImageLoader::getResult() const {
     return mImageLoadResult;
 }
