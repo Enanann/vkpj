@@ -8,11 +8,12 @@ struct ImageLoadResult {
     int texWidth{};
     int texHeight{};
     int texChannels{};
-    stbi_uc* pixels;
+    stbi_uc* pixels{nullptr};
 };
 
 class ImageLoader {
 public:
+    ImageLoader();
     ImageLoader(std::filesystem::path, ImageLoadResult);
 
     const ImageLoadResult& getResult() const;

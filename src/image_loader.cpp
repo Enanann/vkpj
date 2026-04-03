@@ -12,6 +12,10 @@ const ImageLoadResult& ImageLoader::getResult() const {
     return mImageLoadResult;
 }
 
+ImageLoader::ImageLoader() {
+    
+}
+
 ImageLoader ImageLoader::loadImageFromPath(const std::filesystem::path& path) {
     stbi_set_flip_vertically_on_load(true);
     ImageLoadResult res;
