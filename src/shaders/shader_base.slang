@@ -39,21 +39,8 @@ float4 fragMain(VertexOutput inVert) : SV_Target
     return color;
 }
 
-
-struct Particle {
-    float2 position;
-    float2 velocity;
-    float4 color;
-};
-
-struct ParticleSSBO {
-    Particle particles;
-};
-StructuredBuffer<ParticleSSBO> particlesIn;
-RWStructuredBuffer<ParticleSSBO> particlesOut;
-
 [shader("compute")]
-[numthreads(256, 1, 1)]
+[numthreads(16, 16, 1)]
 void compMain(uint3 threadId: SV_DispatchThreadID)
 {
 
