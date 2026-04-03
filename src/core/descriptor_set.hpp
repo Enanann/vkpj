@@ -1,6 +1,10 @@
 #pragma once
 
+#include "sampler.hpp"
+
 #include "vulkan/vulkan.hpp"
+#include <functional>
+#include <optional>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 
@@ -22,7 +26,7 @@ struct DescriptorImageUpdateConfig {
     vk::DescriptorType type;
     const Image& image;
     vk::ImageLayout layout;
-    const Sampler& sampler;
+    std::optional<std::reference_wrapper<const Sampler>> sampler;
 };
 
 class DescriptorSet {

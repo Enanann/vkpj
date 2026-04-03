@@ -41,8 +41,13 @@ void DescriptorSet::updateBuffer(const DescriptorBufferUpdateConfig& config) {
 }
 
 void DescriptorSet::updateImage(const DescriptorImageUpdateConfig& config) {
+    vk::Sampler samplerHandle = nullptr;
+    if (config.type == vk::DescriptorType::eCombinedImageSampler && config.sampler.has_value()) {
+        samplerHandle = *config.sampler->get().getVkHandle();
+    }
+
     vk::DescriptorImageInfo imageInfo{
-        .sampler = config.sampler.getVkHandle(),
+        .sampler = samplerHandle,
         .imageView = config.image.getImageView(),
         .imageLayout = config.layout
     };
