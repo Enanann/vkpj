@@ -70,6 +70,55 @@ Image::Image(const VulkanDevice& device, const CommandPool& commandPool, const I
     mSampler.emplace(Sampler(mVulkanDevice, {}));
 }
 
+Image::Image(const VulkanDevice& device, const CommandPool& commandPool, const ComputeImageConfig& config)
+    : mVulkanDevice{device}
+    , mCommandPool{commandPool}
+    , mImageLoader{} 
+{
+    vk::ImageCreateInfo imageCreateInfo{
+        .imageType     = vk::ImageType::e2D,
+        .format        = vk::Format::eR32G32B32A32Sfloat,
+        .extent        = {static_cast<uint32_t>(config.width), static_cast<uint32_t>(config.height), 1},
+        .mipLevels     = 1,
+        .arrayLayers   = 1,
+        .samples       = vk::SampleCountFlagBits::e1,
+        .tiling        = vk::ImageTiling::eOptimal,
+        .usage         = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage,
+        .sharingMode   = vk::SharingMode::eExclusive,
+        .initialLayout = vk::ImageLayout::eUndefined
+    };
+
+    mImage = vk::raii::Image(mVulkanDevice.getVkHandle(), imageCreateInfo);
+    vk::MemoryRequirements memReq{mImage.getMemoryRequirements()};
+    vk::MemoryAllocateInfo allocInfo{
+        .allocationSize = memReq.size,
+        .memoryTypeIndex = Buffer::findMemoryType(mVulkanDevice.getPhysicalDeviceHandle(), memReq.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal)
+    };
+    mImageMemory = vk::raii::DeviceMemory(mVulkanDevice.getVkHandle(), allocInfo);
+    mImage.bindMemory(mImageMemory, 0);
+
+    // SingleTimeCommandBuffer singleTimeCommandBuffer(mVulkanDevice, mCommandPool);
+    // transitionImageLayout(singleTimeCommandBuffer, vk::ImageLayout::eUndefined, vk::ImageLayout::eGeneral);
+    // singleTimeCommandBuffer.executeAndWait();
+
+    vk::ImageViewCreateInfo imageViewCreateInfo{
+        .image = mImage,
+        .viewType = vk::ImageViewType::e2D,
+        .format = imageCreateInfo.format,
+        .subresourceRange = {
+            .aspectMask     = vk::ImageAspectFlagBits::eColor,
+            .baseMipLevel   = 0,
+            .levelCount     = 1,
+            .baseArrayLayer = 0,
+            .layerCount     = 1
+        }
+    };
+    mImageView = vk::raii::ImageView(mVulkanDevice.getVkHandle(), imageViewCreateInfo);
+
+    mSampler.emplace(Sampler(mVulkanDevice, {}));
+}
+
+
 Image::~Image() {
     if (mImageLoader.getResult().pixels) {
         stbi_image_free(mImageLoader.getResult().pixels);
@@ -113,6 +162,12 @@ void Image::transitionImageLayout(SingleTimeCommandBuffer& commandBuffer, vk::Im
 
         barrier.srcStageMask  = vk::PipelineStageFlagBits2::eTransfer;
         barrier.dstStageMask  = vk::PipelineStageFlagBits2::eFragmentShader; 
+    } else if (oldLayout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eGeneral) {
+        barrier.srcAccessMask = {};
+        barrier.dstAccessMask = vk::AccessFlagBits2::eShaderWrite;
+
+        barrier.srcStageMask  = vk::PipelineStageFlagBits2::eTopOfPipe;
+        barrier.dstStageMask  = vk::PipelineStageFlagBits2::eComputeShader;
     } else {
         throw std::runtime_error("Unsupported layout transition");
     }

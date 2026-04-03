@@ -21,10 +21,22 @@ struct ImageConfig {
     vk::ImageAspectFlags    aspect = vk::ImageAspectFlagBits::eColor;
 };
 
+struct ComputeImageConfig {
+    int width;
+    int height;
+};
+
 class Image {
 public:
     Image(const VulkanDevice&, const CommandPool&, const ImageConfig&);
+    Image(const VulkanDevice&, const CommandPool&, const ComputeImageConfig&);
     ~Image();
+
+    Image(const Image&) = delete;
+    Image& operator=(const Image&) = delete;
+
+    Image(Image&&) noexcept = default;            
+    Image& operator=(Image&&) noexcept = delete; 
 
     const ImageLoader& getImageLoader() const;
     const vk::raii::Image& getImage() const;
