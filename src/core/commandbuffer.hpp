@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <vulkan/vulkan_raii.hpp>
 
 #include <optional>
@@ -8,8 +9,10 @@ class VulkanDevice;
 class Swapchain;
 class CommandPool;
 class GraphicsPipeline;
+class ComputePipeline;
 class Buffer;
 class DescriptorSet;
+class Image;
 
 class CommandBuffer {
 public:
@@ -37,6 +40,36 @@ private:
     const std::optional<Buffer>& mVertexBuffer;
     const std::optional<Buffer>& mIndexBuffer;
     const DescriptorSet&         mDescriptorSet;
+
+    vk::raii::CommandBuffer mCommandBuffer{nullptr};
+};
+
+class ComputeCommandBuffer {
+public:
+    ComputeCommandBuffer(const VulkanDevice&, const CommandPool&);
+
+    void setDispatchDimension(uint32_t w, uint32_t h/*, uint32_t z*/);
+    void begin();
+    void record(uint32_t imageIndex, Image&, ComputePipeline&, DescriptorSet&);
+    void end();
+    void transition_image_layout(
+        Image& img, 
+        vk::PipelineStageFlags2 srcStageMask, 
+        vk::AccessFlags2 srcAccessMask,
+        vk::PipelineStageFlags2 dstStageMask, 
+        vk::AccessFlags2 dstAccessMask,
+        vk::ImageLayout oldLayout,
+        vk::ImageLayout newLayout
+    );
+
+    const vk::raii::CommandBuffer& getVkHandle() const;
+private:
+    const VulkanDevice&    mVulkanDevice;
+    const CommandPool&     mCommandPool;
+    // const DescriptorSet&   mComputeDescriptorSet;
+
+    uint32_t _width{};
+    uint32_t _height{};
 
     vk::raii::CommandBuffer mCommandBuffer{nullptr};
 };

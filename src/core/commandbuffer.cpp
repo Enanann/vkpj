@@ -1,5 +1,7 @@
 #include "commandbuffer.hpp"
 
+#include "compute_pipeline.hpp"
+#include "image.hpp"
 #include "constant.hpp"
 #include "descriptor_set.hpp"
 #include "device.hpp"
@@ -134,6 +136,89 @@ void CommandBuffer::transition_image_layout(
         .pImageMemoryBarriers    = &barrier
     };
     mCommandBuffer.pipelineBarrier2(dependencyInfo);
+}
+
+ComputeCommandBuffer::ComputeCommandBuffer(const VulkanDevice& device, const CommandPool& commandPool) 
+    : mVulkanDevice{device}
+    , mCommandPool{commandPool} 
+    // , mComputeDescriptorSet{descriptorSet}
+{
+    vk::CommandBufferAllocateInfo allocInfo{
+        .commandPool = mCommandPool.getVkHandle(),
+        .level = vk::CommandBufferLevel::ePrimary,
+        .commandBufferCount = 1,
+    };
+
+    mCommandBuffer = std::move(vk::raii::CommandBuffers(mVulkanDevice.getVkHandle(), allocInfo).front());
+}
+
+void ComputeCommandBuffer::setDispatchDimension(uint32_t w, uint32_t h/*, uint32_t z*/) {
+    _width = w;
+    _height = h;
+}
+
+void ComputeCommandBuffer::begin() {
+    mCommandBuffer.begin({});
+}
+
+void ComputeCommandBuffer::record(uint32_t imageIndex, Image& img, ComputePipeline& pipeline, DescriptorSet& toBind) {
+    transition_image_layout(
+        img, 
+        vk::PipelineStageFlagBits2::eTopOfPipe, 
+        vk::AccessFlagBits2::eNone, 
+        vk::PipelineStageFlagBits2::eComputeShader, 
+        vk::AccessFlagBits2::eShaderStorageWrite, 
+        vk::ImageLayout::eUndefined, 
+        vk::ImageLayout::eGeneral
+    );
+
+    mCommandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, pipeline.getVkHandle());
+    mCommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipeline.getLayout(), 0, *toBind.getVkHandle(), nullptr);
+
+    mCommandBuffer.dispatch((_width + 15) / 16, (_height + 15) / 16, 1);
+
+    transition_image_layout(
+        img, 
+        vk::PipelineStageFlagBits2::eComputeShader, 
+        vk::AccessFlagBits2::eShaderStorageWrite, 
+        vk::PipelineStageFlagBits2::eFragmentShader, 
+        vk::AccessFlagBits2::eShaderSampledRead, 
+        vk::ImageLayout::eGeneral, 
+        vk::ImageLayout::eShaderReadOnlyOptimal
+    );
+}
+
+void ComputeCommandBuffer::end() {
+    mCommandBuffer.end();
+}
+
+void ComputeCommandBuffer::transition_image_layout(
+    Image& img, 
+    vk::PipelineStageFlags2 srcStageMask, 
+    vk::AccessFlags2 srcAccessMask,
+    vk::PipelineStageFlags2 dstStageMask, 
+    vk::AccessFlags2 dstAccessMask,
+    vk::ImageLayout oldLayout,
+    vk::ImageLayout newLayout
+) 
+{
+    vk::ImageMemoryBarrier2 barrier1{
+        .srcStageMask  = srcStageMask,
+        .srcAccessMask = srcAccessMask,
+        .dstStageMask  = dstStageMask,
+        .dstAccessMask = dstAccessMask,
+        .oldLayout     = oldLayout, 
+        .newLayout     = newLayout, 
+        .image         = img.getImage(),
+        .subresourceRange = { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 }
+    };
+
+    vk::DependencyInfo dependencyInfo1{ .imageMemoryBarrierCount = 1, .pImageMemoryBarriers = &barrier1 };
+    mCommandBuffer.pipelineBarrier2(dependencyInfo1);
+}
+
+const vk::raii::CommandBuffer& ComputeCommandBuffer::getVkHandle() const {
+    return mCommandBuffer;
 }
 
 SingleTimeCommandBuffer::SingleTimeCommandBuffer(const VulkanDevice& device, const CommandPool& commandPool) 
