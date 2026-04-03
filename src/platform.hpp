@@ -4,8 +4,8 @@
 #include <GLFW/glfw3.h>
 #include <utility>
 
-inline const uint32_t MIN_WIDTH  = 800;
-inline const uint32_t MIN_HEIGHT = 600;
+inline const uint32_t MIN_WIDTH  = 1280;
+inline const uint32_t MIN_HEIGHT = 720;
 inline const float    ZOOM_SPEED = 0.7f;
 
 class Window {
@@ -35,7 +35,9 @@ public:
 
     static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
         auto _window{reinterpret_cast<Window*>(glfwGetWindowUserPointer(window))};
-        _window->mScrollOffset -= yoffset * ZOOM_SPEED;
+        if (glfwGetKey(_window->getGLFWHandle(), GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
+            _window->mScrollOffset -= yoffset * ZOOM_SPEED;
+        }
     }
 
     GLFWwindow* getGLFWHandle() const;
