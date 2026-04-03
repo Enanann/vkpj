@@ -1,5 +1,6 @@
 #pragma once
 
+#include "compute_pipeline.hpp"
 #include "descriptor_layout.hpp"
 #include "descriptor_pool.hpp"
 #include "descriptor_set.hpp"
@@ -15,16 +16,22 @@
 #include "commandbuffer.hpp"
 #include "shader.hpp"
 #include "buffer.hpp"
+#include "effect.hpp"
 
 #include <filesystem>
 #include <optional>
+#include <vector>
 #include <vulkan/vulkan_raii.hpp>
 #include <glm/glm.hpp>
 
 #include <cstdint>
 
 struct FrameData {
-    CommandBuffer       commandBuffer;
+    CommandBuffer        commandBuffer;
+    ComputeCommandBuffer computeCommandBuffer;
+
+    std::optional<Image> ping;
+    std::optional<Image> pong;
 
     vk::raii::Semaphore timelineSemaphore;
     uint64_t            lastSubmittedValue{0};
@@ -59,7 +66,9 @@ private:
     VulkanDevice          mVulkanDevice;
     Swapchain             mSwapchain;
     Shader                mShader;
+    std::vector<Effect>   mEffects;
     DescriptorSetLayout   mDescriptorSetLayout;
+    DescriptorSetLayout   mComputeDescriptorSetLayout;
     GraphicsPipeline      mGraphicsPipeline;
     CommandPool           mCommandPool;
     std::optional<Buffer> mVertexBuffer;
@@ -67,6 +76,9 @@ private:
     std::vector<std::optional<Buffer>> mUniformBuffers;
     DescriptorPool             mDescriptorPool;
     std::vector<DescriptorSet> mDescriptorSets;
+    std::vector<DescriptorSet> mComputeDescriptorSetsInit;
+    std::vector<DescriptorSet> mComputeDescriptorSetsAtoB;
+    std::vector<DescriptorSet> mComputeDescriptorSetsBtoA;
     std::optional<Image>       mImage;
     std::vector<FrameData>     mFrameDatas;
     uint32_t                   mCurrentFrame{0};

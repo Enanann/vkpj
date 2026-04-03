@@ -12,10 +12,12 @@
 #include "vulkan/vulkan.hpp"
 #include "constant.hpp"
 
-#include <cstddef>
 #include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_raii.hpp>
 #include <glm/glm.hpp>
+
+#include <array>
+#include <cstddef>
 #include <glm/gtc/matrix_transform.hpp>
 #include <cstring>
 #include <cassert>
@@ -31,18 +33,30 @@ Renderer::Renderer(Window& window)
     , mGLFWSurface{mInstance, mWindow}
     , mVulkanDevice{mInstance, mGLFWSurface}
     , mSwapchain{mVulkanDevice, mGLFWSurface, mWindow}
-    , mShader{mVulkanDevice, "build/src/shaders/slang.spv"}
+    , mShader{mVulkanDevice, "build/src/shaders/shader_base.spv"}
     , mDescriptorSetLayout(mVulkanDevice, {.bindings = {{0, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex}, 
                                                         {1, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment}}})
+    , mComputeDescriptorSetLayout(mVulkanDevice, {.bindings = {{0, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eCompute}, 
+                                                               {1, vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eCompute}}})    
     , mGraphicsPipeline{mVulkanDevice, mShader, mSwapchain, mDescriptorSetLayout}
     , mCommandPool{mVulkanDevice}
     , mDescriptorPool(mVulkanDevice, {.sizes = {{vk::DescriptorType::eUniformBuffer, MAX_FRAMES_IN_FLIGHT}, 
-                                                {vk::DescriptorType::eCombinedImageSampler, MAX_FRAMES_IN_FLIGHT}}, .maxSets = MAX_FRAMES_IN_FLIGHT})
+                                                {vk::DescriptorType::eCombinedImageSampler, MAX_FRAMES_IN_FLIGHT * 4},
+                                                {vk::DescriptorType::eStorageImage, MAX_FRAMES_IN_FLIGHT * 3}}, .maxSets = MAX_FRAMES_IN_FLIGHT * 4})
     // , mImage(mVulkanDevice, mCommandPool, {ImageLoader::loadImageFromPath("textures/Ichika6.jpeg")})
     , mImGuiSystem(this)
     // , mCommandBuffer{mVulkanDevice, mSwapchain, mCommandPool, mGraphicsPipeline}
     {
+    mEffects.emplace_back(Effect(mVulkanDevice, "build/src/shaders/vignette.spv", mComputeDescriptorSetLayout));
+    mEffects.emplace_back(Effect(mVulkanDevice, "build/src/shaders/vignette.spv", mComputeDescriptorSetLayout));
+    mEffects.emplace_back(Effect(mVulkanDevice, "build/src/shaders/vignette.spv", mComputeDescriptorSetLayout));
+    mEffects.emplace_back(Effect(mVulkanDevice, "build/src/shaders/vignette.spv", mComputeDescriptorSetLayout));
+    mEffects.emplace_back(Effect(mVulkanDevice, "build/src/shaders/grayscale.spv", mComputeDescriptorSetLayout));
+    
+
     mImage.emplace(mVulkanDevice, mCommandPool, ImageConfig{ImageLoader::loadImageFromPath("textures/Ichika6.jpeg")});
+    // mImage.emplace(mVulkanDevice, mCommandPool, ImageConfig{ImageLoader::loadImageFromPath("../../Downloads/wallpp/sky.jpeg")});
+
     BufferConfig vertexConfig{
         .usage         = vk::BufferUsageFlagBits::eVertexBuffer,
         .memProperties = vk::MemoryPropertyFlagBits::eDeviceLocal
@@ -64,31 +78,83 @@ Renderer::Renderer(Window& window)
     mFrameDatas.reserve(MAX_FRAMES_IN_FLIGHT);
     mDescriptorSets.clear();
     mDescriptorSets.reserve(MAX_FRAMES_IN_FLIGHT);
+    mComputeDescriptorSetsInit.clear();
+    mComputeDescriptorSetsInit.reserve(MAX_FRAMES_IN_FLIGHT);
+    mComputeDescriptorSetsAtoB.clear();
+    mComputeDescriptorSetsAtoB.reserve(MAX_FRAMES_IN_FLIGHT);
+    mComputeDescriptorSetsBtoA.clear();
+    mComputeDescriptorSetsBtoA.reserve(MAX_FRAMES_IN_FLIGHT);
     for (size_t i{0}; i < MAX_FRAMES_IN_FLIGHT; ++i) {
         mUniformBuffers.emplace_back(Buffer::createUniformBuffer(mVulkanDevice, uniformBufferSize));
         mDescriptorSets.emplace_back(mVulkanDevice, mDescriptorSetLayout, mDescriptorPool);
+        mComputeDescriptorSetsInit.emplace_back(mVulkanDevice, mComputeDescriptorSetLayout, mDescriptorPool);
+        mComputeDescriptorSetsAtoB.emplace_back(mVulkanDevice, mComputeDescriptorSetLayout, mDescriptorPool);
+        mComputeDescriptorSetsBtoA.emplace_back(mVulkanDevice, mComputeDescriptorSetLayout, mDescriptorPool);
         mFrameDatas.emplace_back(
             CommandBuffer(mVulkanDevice, mSwapchain, mCommandPool, mGraphicsPipeline, mVertexBuffer, mIndexBuffer, mDescriptorSets[i]),
+            ComputeCommandBuffer(mVulkanDevice, mCommandPool),
+            Image(mVulkanDevice, mCommandPool, ComputeImageConfig{mImage->getImageLoader().getResult().texWidth, mImage->getImageLoader().getResult().texHeight}),
+            Image(mVulkanDevice, mCommandPool, ComputeImageConfig{mImage->getImageLoader().getResult().texWidth, mImage->getImageLoader().getResult().texHeight}),
             vk::raii::Semaphore(mVulkanDevice.getVkHandle(), {.pNext = &semaphoreTypeCreateInfo}),
             0,
             vk::raii::Semaphore(mVulkanDevice.getVkHandle(), vk::SemaphoreCreateInfo())
         );
-        const DescriptorBufferUpdateConfig bufferUpdateConfig{
-            .binding = 0,
-            .type = vk::DescriptorType::eUniformBuffer,
-            .buffer = mUniformBuffers[i]->getVkHandle(),
-            .size = sizeof(UniformBufferObject)
-        };
-        mDescriptorSets[i].updateBuffer(bufferUpdateConfig);
+        mFrameDatas[i].computeCommandBuffer.setDispatchDimension(mImage->getImageLoader().getResult().texWidth, mImage->getImageLoader().getResult().texHeight);
 
-        const DescriptorImageUpdateConfig imageUpdateConfig{
-            .binding = 1,
-            .type = vk::DescriptorType::eCombinedImageSampler,
-            .image = *mImage,
-            .layout = vk::ImageLayout::eShaderReadOnlyOptimal,
+        mDescriptorSets[i].updateBuffer({
+            .binding = 0,
+            .type    = vk::DescriptorType::eUniformBuffer,
+            .buffer  = mUniformBuffers[i]->getVkHandle(),
+            .size    = sizeof(UniformBufferObject)
+        });
+
+        // Descriptor set for first pass
+        mComputeDescriptorSetsInit[i].updateImage({
+            .binding = 0,
+            .type    = vk::DescriptorType::eCombinedImageSampler,
+            .image   = *mImage,
+            .layout  = vk::ImageLayout::eShaderReadOnlyOptimal,
             .sampler = mImage->getSampler()
-        };
-        mDescriptorSets[i].updateImage(imageUpdateConfig);
+        });
+        mComputeDescriptorSetsInit[i].updateImage({
+            .binding = 1,
+            .type    = vk::DescriptorType::eStorageImage,
+            .image   = *mFrameDatas[i].ping,
+            .layout  = vk::ImageLayout::eGeneral,
+            .sampler = mFrameDatas[i].ping->getSampler()
+        });
+
+        // Descriptor set for ping -> pong
+        mComputeDescriptorSetsAtoB[i].updateImage({
+            .binding = 0,
+            .type    = vk::DescriptorType::eCombinedImageSampler,
+            .image   = *mFrameDatas[i].ping,
+            .layout  = vk::ImageLayout::eShaderReadOnlyOptimal,
+            .sampler = mFrameDatas[i].ping->getSampler()
+        });
+        mComputeDescriptorSetsAtoB[i].updateImage({
+            .binding = 1,
+            .type    = vk::DescriptorType::eStorageImage,
+            .image   = *mFrameDatas[i].pong,
+            .layout  = vk::ImageLayout::eGeneral,
+            .sampler = mFrameDatas[i].pong->getSampler()
+        });
+
+        // Descriptor set for pong -> ping
+        mComputeDescriptorSetsBtoA[i].updateImage({
+            .binding = 0,
+            .type    = vk::DescriptorType::eCombinedImageSampler,
+            .image   = *mFrameDatas[i].pong,
+            .layout  = vk::ImageLayout::eShaderReadOnlyOptimal,
+            .sampler = mFrameDatas[i].pong->getSampler()
+        });
+        mComputeDescriptorSetsBtoA[i].updateImage({
+            .binding = 1,
+            .type    = vk::DescriptorType::eStorageImage,
+            .image   = *mFrameDatas[i].ping,
+            .layout  = vk::ImageLayout::eGeneral,
+            .sampler = mFrameDatas[i].ping->getSampler()
+        });
     }
 
     for (auto i{0}; i < mSwapchain.getImages().size(); ++i) {
@@ -114,6 +180,8 @@ void Renderer::drawImGui() {
     mImGuiSystem.render();
 }
 
+#define COMPUTE
+#ifndef COMPUTE
 void Renderer::draw() {
     auto& frame{mFrameDatas[mCurrentFrame]};
 
@@ -212,6 +280,179 @@ void Renderer::draw() {
 
     mCurrentFrame = (mCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
+#endif
+
+#ifdef COMPUTE
+// draw with compute here
+void Renderer::draw() {
+    auto& frame{mFrameDatas[mCurrentFrame]};
+
+    // Wait for the last frame to finish
+    auto semaphoreResult = mVulkanDevice.getVkHandle().waitSemaphores(
+        vk::SemaphoreWaitInfo{
+            .semaphoreCount = 1,
+            .pSemaphores    = &*frame.timelineSemaphore,
+            .pValues        = &frame.lastSubmittedValue
+        },
+        UINT64_MAX
+    );
+    if (semaphoreResult != vk::Result::eSuccess) {
+        throw std::runtime_error("Failed to wait for semaphore");
+    }
+    
+    // Acquire next image from the swapchain, signal imageAvailableSemaphore
+    auto [result, imageIndex] = mSwapchain.getVkHandle().acquireNextImage(UINT64_MAX, *frame.imageAvailableSemaphore, nullptr);
+    if (result == vk::Result::eErrorOutOfDateKHR) {
+        mSwapchain.recreate();
+        return;
+    } else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR) {
+        assert(result == vk::Result::eTimeout || result == vk::Result::eNotReady);
+        throw std::runtime_error("Failed to acquire swapchain image");
+    }
+    
+    uint64_t lastFrameValue = frame.lastSubmittedValue; 
+    uint64_t computeFinishedValue = lastFrameValue + 1; 
+    uint64_t graphicsFinishedValue = lastFrameValue + 2;
+
+    UniformBufferObject ubo{};
+    ubo.model = glm::translate(glm::mat4(1.0f), glm::vec3(mPan, 0.0f));
+    ubo.model = glm::scale(ubo.model, glm::vec3(mScale, 1.0f));
+    ubo.view  = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    ubo.proj  = glm::perspective(glm::radians(mZoom), static_cast<float>(mSwapchain.getExtent().width) / static_cast<float>(mSwapchain.getExtent().height), 0.1f, 10.0f);
+    ubo.proj[1][1] *= -1;
+    mUniformBuffers[mCurrentFrame]->update(ubo);
+
+    Image* currentImage = &mImage.value();
+    Image* currentWrite{nullptr};
+    DescriptorSet* currentSetToBind{nullptr};
+    // Compute
+    {
+        frame.computeCommandBuffer.begin();
+        for (size_t i{0}; i < mEffects.size(); ++i) {
+            if (i == 0) {
+                currentSetToBind = &mComputeDescriptorSetsInit[mCurrentFrame];
+                currentWrite = &mFrameDatas[mCurrentFrame].ping.value();
+            } else if (i % 2 == 1) {
+                currentSetToBind = &mComputeDescriptorSetsAtoB[mCurrentFrame];
+                currentWrite = &mFrameDatas[mCurrentFrame].pong.value();
+            } else {
+                currentSetToBind = &mComputeDescriptorSetsBtoA[mCurrentFrame];
+                currentWrite = &mFrameDatas[mCurrentFrame].ping.value();
+            }
+
+            frame.computeCommandBuffer.record(imageIndex, *currentWrite, mEffects[i].getPipeline(), *currentSetToBind);
+
+            currentImage = currentWrite;
+        }
+        frame.computeCommandBuffer.end();
+
+        vk::SemaphoreSubmitInfo waitCompute{
+            .semaphore   = *frame.timelineSemaphore,
+            .value       = lastFrameValue,
+            .stageMask   = vk::PipelineStageFlagBits2::eComputeShader,
+            .deviceIndex = 0
+        };
+
+        vk::SemaphoreSubmitInfo signalCompute{
+            .semaphore   = *frame.timelineSemaphore,
+            .value       = computeFinishedValue,
+            .stageMask   = vk::PipelineStageFlagBits2::eComputeShader,
+            .deviceIndex = 0
+        };
+
+        const vk::CommandBufferSubmitInfo commandBufferSubmitInfo{
+            .commandBuffer = *frame.computeCommandBuffer.getVkHandle(),
+            .deviceMask    = 0
+        };
+        const vk::SubmitInfo2 computeSubmitInfo{
+            .waitSemaphoreInfoCount   = 1,
+            .pWaitSemaphoreInfos      = &waitCompute,
+            .commandBufferInfoCount   = 1,
+            .pCommandBufferInfos      = &commandBufferSubmitInfo,
+            .signalSemaphoreInfoCount = 1,
+            .pSignalSemaphoreInfos    = &signalCompute
+        };
+        mVulkanDevice.getGraphicsQueue().submit2(computeSubmitInfo);
+    }
+
+    // Graphics
+    {
+        mDescriptorSets[mCurrentFrame].updateImage({
+            .binding = 1,
+            .type    = vk::DescriptorType::eCombinedImageSampler,
+            .image   = *currentImage,
+            .layout  = vk::ImageLayout::eShaderReadOnlyOptimal,
+            .sampler = currentImage->getSampler()
+        });
+
+        frame.commandBuffer.getVkHandle().reset();
+        frame.commandBuffer.record(imageIndex);
+        
+        vk::SemaphoreSubmitInfo waitImageAvailableSemaphore{
+            .semaphore   = frame.imageAvailableSemaphore,
+            .value       = 0,
+            .stageMask   = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+            .deviceIndex = 0
+        };
+
+        vk::SemaphoreSubmitInfo waitComputeFinishedSemaphore{
+            .semaphore   = *frame.timelineSemaphore,
+            .value       = computeFinishedValue,
+            .stageMask   = vk::PipelineStageFlagBits2::eVertexShader | vk::PipelineStageFlagBits2::eFragmentShader,
+            .deviceIndex = 0
+        };
+        std::array<vk::SemaphoreSubmitInfo, 2> waitSemaphoreSubmitInfos{waitImageAvailableSemaphore, waitComputeFinishedSemaphore};
+        
+        vk::SemaphoreSubmitInfo signalGraphicsFinished{
+            .semaphore   = *frame.timelineSemaphore,
+            .value       = graphicsFinishedValue,
+            .stageMask   = vk::PipelineStageFlagBits2::eAllGraphics,
+            .deviceIndex = 0
+        };
+        vk::SemaphoreSubmitInfo signalRenderFinishedSemaphore{
+            .semaphore   = mRenderFinishedSemaphores[imageIndex],
+            .value       = 0,
+            .stageMask   = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+            .deviceIndex = 0
+        };
+        std::array<vk::SemaphoreSubmitInfo, 2> signalSemaphoreSubmitInfos{signalGraphicsFinished, signalRenderFinishedSemaphore};
+        
+        const vk::CommandBufferSubmitInfo commandBufferSubmitInfo{
+            .commandBuffer = *frame.commandBuffer.getVkHandle(),
+            .deviceMask    = 0
+        };
+        const vk::SubmitInfo2 submitInfo{
+            .waitSemaphoreInfoCount   = static_cast<uint32_t>(waitSemaphoreSubmitInfos.size()),
+            .pWaitSemaphoreInfos      = waitSemaphoreSubmitInfos.data(),
+            .commandBufferInfoCount   = 1,
+            .pCommandBufferInfos      = &commandBufferSubmitInfo,
+            .signalSemaphoreInfoCount = static_cast<uint32_t>(signalSemaphoreSubmitInfos.size()),
+            .pSignalSemaphoreInfos    = signalSemaphoreSubmitInfos.data()
+        };
+        
+        mVulkanDevice.getGraphicsQueue().submit2(submitInfo);
+        frame.lastSubmittedValue = graphicsFinishedValue;
+        
+        const vk::PresentInfoKHR presentInfo{
+            .waitSemaphoreCount = 1,
+            .pWaitSemaphores    = &*mRenderFinishedSemaphores[imageIndex],
+            .swapchainCount     = 1,
+            .pSwapchains        = &*mSwapchain.getVkHandle(),
+            .pImageIndices      = &imageIndex
+        };
+        result = mVulkanDevice.getPresentQueue().presentKHR(presentInfo);
+        if (result == vk::Result::eSuboptimalKHR || result == vk::Result::eErrorOutOfDateKHR || mWindow.getResizeStatus()) {
+            mWindow.setResizeStatus(false);
+            mSwapchain.recreate();
+            return;
+        } else {
+            // There are no other success code than eSuccess; on any error code, presentKHR already threw an exception
+            assert(result == vk::Result::eSuccess);
+        }
+    }   
+    mCurrentFrame = (mCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+}
+#endif
 
 void Renderer::setPan(glm::vec2& v) {
     mPan = glm::vec2(v);
@@ -264,5 +505,11 @@ void Renderer::changeImage(const std::filesystem::path& path) {
 }
 
 void Renderer::cleanup() {
+    mVulkanDevice.getVkHandle().waitIdle();
     mImGuiSystem.cleanup();
+    // mPingPongA.reset();
+    // mPingPongB.reset();
+    mImage.reset();
+    for (auto& effect : mEffects) {
+    }
 }
