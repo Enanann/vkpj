@@ -140,23 +140,33 @@ function (add_slang_shader_target TARGET)
             COMMAND ${CMAKE_COMMAND} -E make_directory ${SHADERS_DIR}
     )
 
-    # Shader compilation command
-    add_custom_command (
-        OUTPUT  ${SHADERS_DIR}/slang.spv
-        COMMAND ${SLANGC_EXECUTABLE} ${SHADER_SOURCES} 
-                -target spirv 
-                -profile spirv_1_4+spvRayQueryKHR 
-                -emit-spirv-directly 
-                -fvk-use-entrypoint-name ${ENTRY_POINTS} 
-                -o slang.spv
-        WORKING_DIRECTORY ${SHADERS_DIR}
-        DEPENDS ${SHADERS_DIR} ${SHADER_SOURCES}
-        COMMENT "Compiling Slang Shaders"
-        VERBATIM
-    )
+    foreach(SRC ${SHADER_SOURCES})
+
+        # Extract filename without extension
+        get_filename_component(SHADER_NAME ${SRC} NAME_WE)
+
+        # Output file
+        set(OUT_FILE ${SHADERS_DIR}/${SHADER_NAME}.spv)
+
+        list(APPEND OUTPUT_FILES ${OUT_FILE})
+
+        add_custom_command(
+            OUTPUT ${OUT_FILE}
+            COMMAND ${SLANGC_EXECUTABLE} ${SRC}
+                    -target spirv
+                    -profile spirv_1_4+spvRayQueryKHR
+                    -emit-spirv-directly
+                    -fvk-use-entrypoint-name ${ENTRY_POINTS}
+                    -o ${OUT_FILE}
+            WORKING_DIRECTORY ${SHADERS_DIR}
+            DEPENDS ${SHADERS_DIR} ${SRC}
+            COMMENT "Compiling Slang shader ${SRC}"
+            VERBATIM
+        )
+    endforeach()
 
     # Create the build target
-    add_custom_target (${TARGET} DEPENDS ${SHADERS_DIR}/slang.spv)
+    add_custom_target (${TARGET} DEPENDS ${OUTPUT_FILES})
 endfunction()
 
 add_subdirectory(src)

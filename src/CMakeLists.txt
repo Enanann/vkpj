@@ -24,7 +24,10 @@ set(SOURCES
     image/image.cpp
     image/sampler.cpp
 
+    effects/effect.cpp
+
     pipeline/graphics_pipeline.cpp
+    pipeline/compute_pipeline.cpp
     
     renderer/renderer.cpp
 )
@@ -38,6 +41,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/pipeline
     ${CMAKE_CURRENT_SOURCE_DIR}/renderer
     ${CMAKE_CURRENT_SOURCE_DIR}/image
+    ${CMAKE_CURRENT_SOURCE_DIR}/effects
     ${IMGUI_DIR}
 )
 
@@ -55,5 +59,7 @@ target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
 add_slang_shader_target(
     ${PROJECT_NAME}_shaders
     SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/shaders/shader_base.slang"
+    SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/shaders/grayscale.slang"
+    SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/shaders/vignette.slang"
 )
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_shaders)
