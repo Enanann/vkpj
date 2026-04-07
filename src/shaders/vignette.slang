@@ -10,6 +10,9 @@ Texture2D<float4> inputImage;
 [[vk_image_format("rgba32f")]]
 RWTexture2D<float4> outputImage;
 
+static float radius = 0.8;    // 0 to 1 
+static float intensity = 1.0; // 0 to 1
+
 [shader("compute")]
 [numthreads(16, 16, 1)]
 void compMain(uint3 threadId: SV_DispatchThreadID)
@@ -22,15 +25,15 @@ void compMain(uint3 threadId: SV_DispatchThreadID)
     int2 texelCoord = int2(threadId.xy);
 
     float2 u = float2(texelCoord) / float2(size);
-    u = saturate(u * (1.0 - u.yx));
 
     float4 color = inputImage.Load(int3(texelCoord, 0));
 
-    float str = 25.0;
-    float dia = 0.5;
+    // Normalized distance from center
+    float dist = sqrt(pow(u.x - 0.5, 2) + pow(u.y - 0.5, 2));
 
-    float v = max(u.x * u.y * str, 1e-5);
-    float vignette = pow(v, dia);
+    // Vignette mask
+    float mask = saturate(1.0 - dist * radius);
+    mask = 1.0 - (1.0 - mask) * intensity;
 
-    outputImage[texelCoord] = color * vignette;
+    outputImage[texelCoord] = color * mask;
 }
