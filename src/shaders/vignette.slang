@@ -32,8 +32,8 @@ void compMain(uint3 threadId: SV_DispatchThreadID)
     float dist = sqrt(pow(u.x - 0.5, 2) + pow(u.y - 0.5, 2));
 
     // Vignette mask
-    float mask = saturate(1.0 - dist * radius);
-    mask = 1.0 - (1.0 - mask) * intensity;
+    float mask = saturate(1.0 - dist * radius); // clip to [0,1]
+    mask = lerp(1.0, mask, intensity);          // linear interpolation lerp(x, y, s) = x + s * (y - x)
 
     outputImage[texelCoord] = color * mask;
 }
