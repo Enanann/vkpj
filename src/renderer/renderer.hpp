@@ -4,6 +4,7 @@
 #include "descriptor_layout.hpp"
 #include "descriptor_pool.hpp"
 #include "descriptor_set.hpp"
+#include "effect_registry.hpp"
 #include "image.hpp"
 #include "imgui_system.hpp"
 #include "platform.hpp"
@@ -19,6 +20,7 @@
 #include "effect.hpp"
 
 #include <filesystem>
+#include <memory>
 #include <optional>
 #include <vector>
 #include <vulkan/vulkan_raii.hpp>
@@ -55,6 +57,7 @@ public:
     const VulkanDevice& getDevice() const;
     const Swapchain&    getSwapchain() const;
     const CommandPool&  getCommandPool() const;
+    std::vector<std::unique_ptr<Effect>>& getEffects();
 
     void cleanup();
 private:
@@ -66,9 +69,10 @@ private:
     VulkanDevice          mVulkanDevice;
     Swapchain             mSwapchain;
     Shader                mShader;
-    std::vector<Effect>   mEffects;
+    std::vector<std::unique_ptr<Effect>> mEffects;
     DescriptorSetLayout   mDescriptorSetLayout;
     DescriptorSetLayout   mComputeDescriptorSetLayout;
+    EffectRegistry        mEffectRegistry;
     GraphicsPipeline      mGraphicsPipeline;
     CommandPool           mCommandPool;
     std::optional<Buffer> mVertexBuffer;

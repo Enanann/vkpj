@@ -38,6 +38,7 @@ Renderer::Renderer(Window& window)
                                                         {1, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment}}})
     , mComputeDescriptorSetLayout(mVulkanDevice, {.bindings = {{0, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eCompute}, 
                                                                {1, vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eCompute}}})    
+    // , mEffectRegistry{}
     , mGraphicsPipeline{mVulkanDevice, mShader, mSwapchain, mDescriptorSetLayout}
     , mCommandPool{mVulkanDevice}
     , mDescriptorPool(mVulkanDevice, {.sizes = {{vk::DescriptorType::eUniformBuffer, MAX_FRAMES_IN_FLIGHT}, 
@@ -47,15 +48,19 @@ Renderer::Renderer(Window& window)
     , mImGuiSystem(this)
     // , mCommandBuffer{mVulkanDevice, mSwapchain, mCommandPool, mGraphicsPipeline}
     {
-    mEffects.emplace_back(Effect(mVulkanDevice, "build/src/shaders/vignette.spv", mComputeDescriptorSetLayout));
-    mEffects.emplace_back(Effect(mVulkanDevice, "build/src/shaders/vignette.spv", mComputeDescriptorSetLayout));
-    mEffects.emplace_back(Effect(mVulkanDevice, "build/src/shaders/vignette.spv", mComputeDescriptorSetLayout));
-    mEffects.emplace_back(Effect(mVulkanDevice, "build/src/shaders/vignette.spv", mComputeDescriptorSetLayout));
-    mEffects.emplace_back(Effect(mVulkanDevice, "build/src/shaders/grayscale.spv", mComputeDescriptorSetLayout));
-    
+    // mEffects.emplace_back(Effect(mVulkanDevice, "build/src/shaders/vignette.spv", mComputeDescriptorSetLayout));
+    // mEffects.emplace_back(Effect(mVulkanDevice, "build/src/shaders/vignette.spv", mComputeDescriptorSetLayout));
+    // mEffects.emplace_back(Effect(mVulkanDevice, "build/src/shaders/vignette.spv", mComputeDescriptorSetLayout));
+    // mEffects.emplace_back(Effect(mVulkanDevice, "build/src/shaders/vignette.spv", mComputeDescriptorSetLayout));
+    // mEffects.emplace_back(Effect(mVulkanDevice, "build/src/shaders/grayscale.spv", mComputeDescriptorSetLayout));
 
-    mImage.emplace(mVulkanDevice, mCommandPool, ImageConfig{ImageLoader::loadImageFromPath("textures/Ichika6.jpeg")});
-    // mImage.emplace(mVulkanDevice, mCommandPool, ImageConfig{ImageLoader::loadImageFromPath("../../Downloads/wallpp/sky.jpeg")});
+    mEffects.emplace_back(std::make_unique<Effect>(mVulkanDevice, mComputeDescriptorSetLayout, *mEffectRegistry.getByName("grayscale")));
+    mEffects.emplace_back(std::make_unique<Effect>(mVulkanDevice, mComputeDescriptorSetLayout, *mEffectRegistry.getByName("vignette")));
+    // mEffects.emplace_back(std::make_unique<Effect>(mVulkanDevice, mComputeDescriptorSetLayout, *mEffectRegistry.getByName("vignette")));
+    // mEffects.emplace_back(std::make_unique<Effect>(mVulkanDevice, mComputeDescriptorSetLayout, *mEffectRegistry.getByName("vignette")));
+
+    // mImage.emplace(mVulkanDevice, mCommandPool, ImageConfig{ImageLoader::loadImageFromPath("textures/Ichika6.jpeg")});
+    mImage.emplace(mVulkanDevice, mCommandPool, ImageConfig{ImageLoader::loadImageFromPath("../../Downloads/wallpp/sky.jpeg")});
 
     BufferConfig vertexConfig{
         .usage         = vk::BufferUsageFlagBits::eVertexBuffer,
@@ -311,8 +316,8 @@ void Renderer::draw() {
     }
     
     uint64_t lastFrameValue = frame.lastSubmittedValue; 
-    uint64_t computeFinishedValue = lastFrameValue + 1; 
-    uint64_t graphicsFinishedValue = lastFrameValue + 2;
+    uint64_t computeFinishedValue = lastFrameValue;      // default value if no effect is enabled
+    uint64_t graphicsFinishedValue = lastFrameValue + 1;
 
     UniformBufferObject ubo{};
     ubo.model = glm::translate(glm::mat4(1.0f), glm::vec3(mPan, 0.0f));
@@ -325,56 +330,74 @@ void Renderer::draw() {
     Image* currentImage = &mImage.value();
     Image* currentWrite{nullptr};
     DescriptorSet* currentSetToBind{nullptr};
-    // Compute
-    {
-        frame.computeCommandBuffer.begin();
-        for (size_t i{0}; i < mEffects.size(); ++i) {
-            if (i == 0) {
-                currentSetToBind = &mComputeDescriptorSetsInit[mCurrentFrame];
-                currentWrite = &mFrameDatas[mCurrentFrame].ping.value();
-            } else if (i % 2 == 1) {
-                currentSetToBind = &mComputeDescriptorSetsAtoB[mCurrentFrame];
-                currentWrite = &mFrameDatas[mCurrentFrame].pong.value();
-            } else {
-                currentSetToBind = &mComputeDescriptorSetsBtoA[mCurrentFrame];
-                currentWrite = &mFrameDatas[mCurrentFrame].ping.value();
-            }
-
-            frame.computeCommandBuffer.record(imageIndex, *currentWrite, mEffects[i].getPipeline(), *currentSetToBind);
-
-            currentImage = currentWrite;
+    int totalActiveEffects{0};
+    for (const auto& e : mEffects) {
+        if (e->mIsEnabled) {
+            totalActiveEffects++;
         }
-        frame.computeCommandBuffer.end();
-
-        vk::SemaphoreSubmitInfo waitCompute{
-            .semaphore   = *frame.timelineSemaphore,
-            .value       = lastFrameValue,
-            .stageMask   = vk::PipelineStageFlagBits2::eComputeShader,
-            .deviceIndex = 0
-        };
-
-        vk::SemaphoreSubmitInfo signalCompute{
-            .semaphore   = *frame.timelineSemaphore,
-            .value       = computeFinishedValue,
-            .stageMask   = vk::PipelineStageFlagBits2::eComputeShader,
-            .deviceIndex = 0
-        };
-
-        const vk::CommandBufferSubmitInfo commandBufferSubmitInfo{
-            .commandBuffer = *frame.computeCommandBuffer.getVkHandle(),
-            .deviceMask    = 0
-        };
-        const vk::SubmitInfo2 computeSubmitInfo{
-            .waitSemaphoreInfoCount   = 1,
-            .pWaitSemaphoreInfos      = &waitCompute,
-            .commandBufferInfoCount   = 1,
-            .pCommandBufferInfos      = &commandBufferSubmitInfo,
-            .signalSemaphoreInfoCount = 1,
-            .pSignalSemaphoreInfos    = &signalCompute
-        };
-        mVulkanDevice.getGraphicsQueue().submit2(computeSubmitInfo);
     }
+    if (totalActiveEffects > 0) {
+        computeFinishedValue++;
+        graphicsFinishedValue++;
+        // Compute
+        {
 
+            frame.computeCommandBuffer.begin();
+            int activeEffectIndex{0};        
+            for (size_t i{0}; i < mEffects.size(); ++i) {
+                if (!mEffects[i]->mIsEnabled) continue;
+                
+                if (activeEffectIndex == 0) {
+                    currentSetToBind = &mComputeDescriptorSetsInit[mCurrentFrame];
+                    currentWrite = &mFrameDatas[mCurrentFrame].ping.value();
+                } else if (activeEffectIndex % 2 == 1) {
+                    currentSetToBind = &mComputeDescriptorSetsAtoB[mCurrentFrame];
+                    currentWrite = &mFrameDatas[mCurrentFrame].pong.value();
+                } else {
+                    currentSetToBind = &mComputeDescriptorSetsBtoA[mCurrentFrame];
+                    currentWrite = &mFrameDatas[mCurrentFrame].ping.value();
+                }
+    
+                if (mEffects[i]->usePushConstant()) {
+                    frame.computeCommandBuffer.setPushConstant(mEffects[i]->getPipeline().getLayout(), 0, mEffects[i]->getFloatParamSize(), mEffects[i]->getParamsData().data());
+                }
+    
+                frame.computeCommandBuffer.record(imageIndex, *currentWrite, mEffects[i]->getPipeline(), *currentSetToBind);
+    
+                currentImage = currentWrite;
+                activeEffectIndex++;
+            }
+            frame.computeCommandBuffer.end();
+
+            vk::SemaphoreSubmitInfo waitCompute{
+                .semaphore   = *frame.timelineSemaphore,
+                .value       = lastFrameValue,
+                .stageMask   = vk::PipelineStageFlagBits2::eComputeShader,
+                .deviceIndex = 0
+            };
+
+            vk::SemaphoreSubmitInfo signalCompute{
+                .semaphore   = *frame.timelineSemaphore,
+                .value       = computeFinishedValue,
+                .stageMask   = vk::PipelineStageFlagBits2::eComputeShader,
+                .deviceIndex = 0
+            };
+
+            const vk::CommandBufferSubmitInfo commandBufferSubmitInfo{
+                .commandBuffer = *frame.computeCommandBuffer.getVkHandle(),
+                .deviceMask    = 0
+            };
+            const vk::SubmitInfo2 computeSubmitInfo{
+                .waitSemaphoreInfoCount   = 1,
+                .pWaitSemaphoreInfos      = &waitCompute,
+                .commandBufferInfoCount   = 1,
+                .pCommandBufferInfos      = &commandBufferSubmitInfo,
+                .signalSemaphoreInfoCount = 1,
+                .pSignalSemaphoreInfos    = &signalCompute
+            };
+            mVulkanDevice.getGraphicsQueue().submit2(computeSubmitInfo);
+        }
+    }
     // Graphics
     {
         mDescriptorSets[mCurrentFrame].updateImage({
@@ -480,6 +503,10 @@ const Swapchain& Renderer::getSwapchain() const {
 
 const CommandPool& Renderer::getCommandPool() const {
     return mCommandPool;
+}
+
+std::vector<std::unique_ptr<Effect>>& Renderer::getEffects() {
+    return mEffects;
 }
 
 void Renderer::changeImage(const std::filesystem::path& path) {
