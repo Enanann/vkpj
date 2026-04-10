@@ -50,7 +50,8 @@ public:
 
     void setDispatchDimension(uint32_t w, uint32_t h/*, uint32_t z*/);
     void begin();
-    void record(uint32_t imageIndex, Image&, ComputePipeline&, DescriptorSet&);
+    void setPushConstant(const vk::raii::PipelineLayout& layout, uint32_t offset, uint32_t size, const void* data);
+    void record(uint32_t imageIndex, Image&, const ComputePipeline&, DescriptorSet&);
     void end();
     void transition_image_layout(
         Image& img, 

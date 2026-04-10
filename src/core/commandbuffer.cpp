@@ -12,7 +12,7 @@
 #include "vulkan/vulkan.hpp"
 #include "imgui.h"
 #include "backends/imgui_impl_vulkan.h"
-#include "backends/imgui_impl_glfw.h"
+// #include "backends/imgui_impl_glfw.h"
 #include <cstdint>
 #include <stdexcept>
 #include <vulkan/vulkan_raii.hpp>
@@ -161,7 +161,18 @@ void ComputeCommandBuffer::begin() {
     mCommandBuffer.begin({});
 }
 
-void ComputeCommandBuffer::record(uint32_t imageIndex, Image& img, ComputePipeline& pipeline, DescriptorSet& toBind) {
+void ComputeCommandBuffer::setPushConstant(const vk::raii::PipelineLayout& layout, uint32_t offset, uint32_t size, const void* data) {
+    vk::PushConstantsInfoKHR pushInfo{
+        .layout = layout,
+        .stageFlags = vk::ShaderStageFlagBits::eCompute,
+        .offset = offset,
+        .size = size,
+        .pValues = data
+    };
+    mCommandBuffer.pushConstants2(pushInfo);
+}
+
+void ComputeCommandBuffer::record(uint32_t imageIndex, Image& img, const ComputePipeline& pipeline, DescriptorSet& toBind) {
     transition_image_layout(
         img, 
         vk::PipelineStageFlagBits2::eTopOfPipe, 
