@@ -11,6 +11,7 @@
 #include <stdexcept>
 #include <vulkan/vulkan_core.h>
 #include <iostream>
+#include <utility>
 
 ImGuiSystem::ImGuiSystem(Renderer* renderer) 
     : mRenderer{renderer}
@@ -97,6 +98,70 @@ void ImGuiSystem::render() {
         mRenderer->changeImage(mFilebrowser.GetSelected());
         mFilebrowser.ClearSelected();
     }
+
+    if (ImGui::Begin("Effects")) {
+
+        // Drag and drop to reorder effect
+        for (size_t i{0}; i < mRenderer->getEffects().size(); ++i) {
+            auto& e = mRenderer->getEffects()[i];
+    
+            ImGui::PushID(static_cast<int>(i));
+    
+            // Open as default
+            auto nodeFlags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow;
+            bool nodeOpen = ImGui::TreeNodeEx(e->getName().data(), nodeFlags);
+    
+            if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
+                ImGui::SetDragDropPayload("EFFECT_CELL", &i, sizeof(size_t));
+                ImGui::Text("Dragging: %s", e->getName().data());
+                ImGui::EndDragDropSource();
+            }
+    
+            if (ImGui::BeginDragDropTarget()) {
+                // Accept if tpye is "EFFECT_CELL"
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("EFFECT_CELL")) {
+                    // Get the drag source index
+                    IM_ASSERT(payload->DataSize == sizeof(size_t));
+                    size_t payload_n = *(const size_t*)payload->Data; 
+                    size_t target    = i;
+    
+                    /*
+                    std::rotate(first, mid, last);
+                    Parameters:
+                        first: Iterator to the first element in the range.
+                        mid: Iterator to the element that becomes the new first element.
+                        last: Iterator to the theoretical element just after the last element in the range.
+                    */
+                    if (payload_n < target) {
+                        std::rotate(mRenderer->getEffects().begin() + payload_n, 
+                                    mRenderer->getEffects().begin() + payload_n + 1, 
+                                    mRenderer->getEffects().begin() + target + 1);
+                    } else {
+                        std::rotate(mRenderer->getEffects().begin() + target, 
+                                    mRenderer->getEffects().begin() + payload_n, 
+                                    mRenderer->getEffects().begin() + payload_n + 1);
+                    }
+                    // std::swap(mRenderer->getEffects()[payload_n], mRenderer->getEffects()[i]);
+                }
+                ImGui::EndDragDropTarget();
+            }
+    
+            // Effect params
+            if (nodeOpen) {
+                ImGui::Checkbox("Enable", &e->mIsEnabled);
+                if (e->getPipeline().mUsePushConstant) {
+                    for (size_t j{0}; j < e->getParams().size(); ++j) {
+                        const auto& p{e->getParams()[j]};
+                        ImGui::SliderFloat(p.displayName.c_str(), &e->getParamsData()[j], p.min, p.max);
+                    }
+                }
+                ImGui::TreePop();
+            }
+    
+            ImGui::PopID();
+        }
+    }
+    ImGui::End();
 
     ImGui::Render();
 }
