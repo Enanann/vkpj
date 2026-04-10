@@ -25,6 +25,7 @@ set(SOURCES
     image/sampler.cpp
 
     effects/effect.cpp
+    effects/effect_registry.cpp
 
     pipeline/graphics_pipeline.cpp
     pipeline/compute_pipeline.cpp
