@@ -5,7 +5,7 @@
 #include "vulkan/vulkan.hpp"
 #include <vulkan/vulkan_raii.hpp>
 
-ComputePipeline::ComputePipeline(const VulkanDevice& device, Shader& shader, DescriptorSetLayout& descriptorSetLayout)
+ComputePipeline::ComputePipeline(const VulkanDevice& device, Shader& shader, DescriptorSetLayout& descriptorSetLayout, ComputePipelineConfig config)
     : mVulkanDevice{device}
     , mShader{shader}
     , mDescriptorSetLayout{descriptorSetLayout}
@@ -21,6 +21,18 @@ ComputePipeline::ComputePipeline(const VulkanDevice& device, Shader& shader, Des
         .pSetLayouts = &*descriptorSetLayout.getVkHandle(),
         .pushConstantRangeCount = 0
     };
+
+    mUsePushConstant = config.usePushConstant;
+    vk::PushConstantRange range{};
+    if (mUsePushConstant) {
+        pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
+        range = {
+            .stageFlags = vk::ShaderStageFlagBits::eCompute,
+            .offset     = 0,
+            .size       = config.pushConstantSize
+        };
+        pipelineLayoutCreateInfo.setPPushConstantRanges(&range);
+    }
 
     mPipelineLayout = vk::raii::PipelineLayout(mVulkanDevice.getVkHandle(), pipelineLayoutCreateInfo);
 
