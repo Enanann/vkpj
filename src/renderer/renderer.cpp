@@ -60,7 +60,12 @@ Renderer::Renderer(Window& window)
     addEffect("Vignette");
 
     // mImage.emplace(mVulkanDevice, mCommandPool, ImageConfig{ImageLoader::loadImageFromPath("textures/Ichika6.jpeg")});
+#ifdef __linux__
     mImage.emplace(mVulkanDevice, mCommandPool, ImageConfig{ImageLoader::loadImageFromPath("../../Downloads/wallpp/sky.jpeg")});
+#endif
+#ifdef _WIN64
+    mImage.emplace(mVulkanDevice, mCommandPool, ImageConfig{ImageLoader::loadImageFromPath("W:/Download/want to marry.jpg")});
+#endif
 
     BufferConfig vertexConfig{
         .usage         = vk::BufferUsageFlagBits::eVertexBuffer,
