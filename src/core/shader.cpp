@@ -4,8 +4,8 @@
 #include "device.hpp"
 #include <vulkan/vulkan_raii.hpp>
 
-Shader::Shader(const VulkanDevice& vulkanDevice, const std::string& filepath) : mVulkanDevice{vulkanDevice} {
-    mShaderModule = createShaderModule(BinaryReader::readFile((filepath)));
+Shader::Shader(const VulkanDevice& vulkanDevice, const std::filesystem::path& filepath) : mVulkanDevice{vulkanDevice} {
+    mShaderModule = createShaderModule(BinaryReader::readFile((filepath.string())));
 
     vk::PipelineShaderStageCreateInfo vertexShaderInfo {
         .stage  = vk::ShaderStageFlagBits::eVertex,
