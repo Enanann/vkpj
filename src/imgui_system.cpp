@@ -8,6 +8,7 @@
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_vulkan.h"
 #include <cstdint>
+#include <optional>
 #include <stdexcept>
 #include <vulkan/vulkan_core.h>
 #include <iostream>
@@ -100,7 +101,7 @@ void ImGuiSystem::render() {
     }
 
     if (ImGui::Begin("Effects")) {
-
+        std::optional<size_t> effectToRemove{std::nullopt};
         // Drag and drop to reorder effect
         for (size_t i{0}; i < mRenderer->getEffects().size(); ++i) {
             auto& e = mRenderer->getEffects()[i];
@@ -111,6 +112,16 @@ void ImGuiSystem::render() {
             auto nodeFlags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow;
             bool nodeOpen = ImGui::TreeNodeEx(e->getName().data(), nodeFlags);
     
+            // Remove effect
+            ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 20.0f);
+            ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor::HSV(0.0f, 0.6f, 0.6f));
+            float _size = ImGui::GetFrameHeight();
+            if (ImGui::Button("X", ImVec2(_size, _size))) {
+                effectToRemove = i;
+            }
+            ImGui::PopStyleColor(1);
+    
+            // Drag and drop
             if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
                 ImGui::SetDragDropPayload("EFFECT_CELL", &i, sizeof(size_t));
                 ImGui::Text("Dragging: %s", e->getName().data());
@@ -159,6 +170,24 @@ void ImGuiSystem::render() {
             }
     
             ImGui::PopID();
+        }
+        if (effectToRemove.has_value()) {
+            mRenderer->getDevice().getVkHandle().waitIdle();
+            mRenderer->getEffects().erase(mRenderer->getEffects().begin() + effectToRemove.value());
+        }
+
+        if (ImGui::Button("Add effect")) {
+            ImGui::OpenPopup("effect_selection");
+        }
+        if (ImGui::BeginPopup("effect_selection")) {
+            if (ImGui::Selectable("Grayscale")) {
+                mRenderer->addEffect("grayscale");
+            }
+            if (ImGui::Selectable("Vignette")) {
+                mRenderer->addEffect("vignette");
+            }
+
+            ImGui::EndPopup();
         }
     }
     ImGui::End();

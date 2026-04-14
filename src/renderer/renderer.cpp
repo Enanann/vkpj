@@ -54,10 +54,10 @@ Renderer::Renderer(Window& window)
     // mEffects.emplace_back(Effect(mVulkanDevice, "build/src/shaders/vignette.spv", mComputeDescriptorSetLayout));
     // mEffects.emplace_back(Effect(mVulkanDevice, "build/src/shaders/grayscale.spv", mComputeDescriptorSetLayout));
 
-    mEffects.emplace_back(std::make_unique<Effect>(mVulkanDevice, mComputeDescriptorSetLayout, *mEffectRegistry.getByName("grayscale")));
-    mEffects.emplace_back(std::make_unique<Effect>(mVulkanDevice, mComputeDescriptorSetLayout, *mEffectRegistry.getByName("vignette")));
+    // mEffects.emplace_back(std::make_unique<Effect>(mVulkanDevice, mComputeDescriptorSetLayout, *mEffectRegistry.getByName("grayscale")));
     // mEffects.emplace_back(std::make_unique<Effect>(mVulkanDevice, mComputeDescriptorSetLayout, *mEffectRegistry.getByName("vignette")));
-    // mEffects.emplace_back(std::make_unique<Effect>(mVulkanDevice, mComputeDescriptorSetLayout, *mEffectRegistry.getByName("vignette")));
+    addEffect("Grayscale");
+    addEffect("Vignette");
 
     // mImage.emplace(mVulkanDevice, mCommandPool, ImageConfig{ImageLoader::loadImageFromPath("textures/Ichika6.jpeg")});
     mImage.emplace(mVulkanDevice, mCommandPool, ImageConfig{ImageLoader::loadImageFromPath("../../Downloads/wallpp/sky.jpeg")});
@@ -530,6 +530,10 @@ void Renderer::changeImage(const std::filesystem::path& path) {
     _calculateScaling();
     mVulkanDevice.getVkHandle().waitIdle();
 }
+
+void Renderer::addEffect(const char* name) {
+    mEffects.emplace_back(std::make_unique<Effect>(mVulkanDevice, mComputeDescriptorSetLayout, *mEffectRegistry.getByName(name)));
+} 
 
 void Renderer::cleanup() {
     mVulkanDevice.getVkHandle().waitIdle();

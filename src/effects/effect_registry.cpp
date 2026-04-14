@@ -5,9 +5,9 @@
 // #include <format>
 
 EffectRegistry::EffectRegistry() {
-    EffectCreateInfo grayscale{"grayscale", "build/src/shaders/grayscale.spv", {.usePushConstant = false, .pushConstantSize = 1}};
+    EffectCreateInfo grayscale{"Grayscale", "build/src/shaders/grayscale.spv", {.usePushConstant = false, .pushConstantSize = 1}};
 
-    EffectCreateInfo vignette{"vignette", "build/src/shaders/vignette.spv", {.usePushConstant = true, .pushConstantSize = 8}};
+    EffectCreateInfo vignette{"Vignette", "build/src/shaders/vignette.spv", {.usePushConstant = true, .pushConstantSize = 8}};
     vignette.params.push_back({
         .displayName  = "Radius",
         .defaultValue = 0.8,

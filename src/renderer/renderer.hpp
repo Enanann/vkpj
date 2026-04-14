@@ -59,6 +59,8 @@ public:
     const CommandPool&  getCommandPool() const;
     std::vector<std::unique_ptr<Effect>>& getEffects();
 
+    void addEffect(const char*);
+
     void cleanup();
 private:
     void _calculateScaling();
