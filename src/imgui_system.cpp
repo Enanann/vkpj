@@ -181,10 +181,10 @@ void ImGuiSystem::render() {
         }
         if (ImGui::BeginPopup("effect_selection")) {
             if (ImGui::Selectable("Grayscale")) {
-                mRenderer->addEffect("grayscale");
+                mRenderer->addEffect("Grayscale");
             }
             if (ImGui::Selectable("Vignette")) {
-                mRenderer->addEffect("vignette");
+                mRenderer->addEffect("Vignette");
             }
 
             ImGui::EndPopup();
