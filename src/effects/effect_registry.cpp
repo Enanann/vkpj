@@ -21,8 +21,29 @@ EffectRegistry::EffectRegistry() {
         .max = 3.0
     });
 
+    EffectCreateInfo hsl{"HSL", "build/src/shaders/hsl.spv", {.usePushConstant = true, .pushConstantSize = 12}};
+    hsl.params.push_back({
+        .displayName  = "Hue",
+        .defaultValue = 0.0f,
+        .min          = 0.0f,
+        .max          = 1.0f 
+    });
+    hsl.params.push_back({
+        .displayName  = "Saturation",
+        .defaultValue = 0.0f,
+        .min          = 0.0f,
+        .max          = 1.0f 
+    });
+    hsl.params.push_back({
+        .displayName  = "Lightness",
+        .defaultValue = 0.0f,
+        .min          = 0.0f,
+        .max          = 1.0f 
+    });
+
     mEffectCreateInfos.push_back(grayscale);
     mEffectCreateInfos.push_back(vignette);
+    mEffectCreateInfos.push_back(hsl);
 }
 
 // const std::vector<Effect>& EffectRegistry::getEffects() const noexcept {

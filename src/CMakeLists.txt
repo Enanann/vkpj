@@ -60,7 +60,9 @@ target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
 add_slang_shader_target(
     ${PROJECT_NAME}_shaders
     SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/shaders/shader_base.slang"
+    # SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/shaders/utils.slang"
     SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/shaders/grayscale.slang"
     SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/shaders/vignette.slang"
+    SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/shaders/hsl.slang"
 )
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_shaders)

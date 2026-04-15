@@ -186,6 +186,9 @@ void ImGuiSystem::render() {
             if (ImGui::Selectable("Vignette")) {
                 mRenderer->addEffect("Vignette");
             }
+            if (ImGui::Selectable("HSL")) {
+                mRenderer->addEffect("HSL");
+            }
 
             ImGui::EndPopup();
         }
