@@ -56,12 +56,13 @@ Renderer::Renderer(Window& window)
 
     // mEffects.emplace_back(std::make_unique<Effect>(mVulkanDevice, mComputeDescriptorSetLayout, *mEffectRegistry.getByName("grayscale")));
     // mEffects.emplace_back(std::make_unique<Effect>(mVulkanDevice, mComputeDescriptorSetLayout, *mEffectRegistry.getByName("vignette")));
-    addEffect("Grayscale");
-    addEffect("Vignette");
+    // addEffect("Grayscale");
+    // addEffect("Vignette");
+    // addEffect("HSL");
 
-    // mImage.emplace(mVulkanDevice, mCommandPool, ImageConfig{ImageLoader::loadImageFromPath("textures/Ichika6.jpeg")});
 #ifdef __linux__
-    mImage.emplace(mVulkanDevice, mCommandPool, ImageConfig{ImageLoader::loadImageFromPath("../../Downloads/wallpp/sky.jpeg")});
+    mImage.emplace(mVulkanDevice, mCommandPool, ImageConfig{ImageLoader::loadImageFromPath("../../Downloads/wallpp/Ichika6.jpeg")});
+    // mImage.emplace(mVulkanDevice, mCommandPool, ImageConfig{ImageLoader::loadImageFromPath("../../Downloads/wallpp/sky.jpeg")});
 #endif
 #ifdef _WIN64
     mImage.emplace(mVulkanDevice, mCommandPool, ImageConfig{ImageLoader::loadImageFromPath("W:/Download/want to marry.jpg")});
