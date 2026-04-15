@@ -112,15 +112,6 @@ void ImGuiSystem::render() {
             auto nodeFlags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow;
             bool nodeOpen = ImGui::TreeNodeEx(e->getName().data(), nodeFlags);
     
-            // Remove effect
-            ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 20.0f);
-            ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor::HSV(0.0f, 0.6f, 0.6f));
-            float _size = ImGui::GetFrameHeight();
-            if (ImGui::Button("X", ImVec2(_size, _size))) {
-                effectToRemove = i;
-            }
-            ImGui::PopStyleColor(1);
-    
             // Drag and drop
             if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
                 ImGui::SetDragDropPayload("EFFECT_CELL", &i, sizeof(size_t));
@@ -156,6 +147,15 @@ void ImGuiSystem::render() {
                 }
                 ImGui::EndDragDropTarget();
             }
+            
+            // Remove effect
+            ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 20.0f);
+            ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor::HSV(0.0f, 0.6f, 0.6f));
+            float _size = ImGui::GetFrameHeight();
+            if (ImGui::Button("X", ImVec2(_size, _size))) {
+                effectToRemove = i;
+            }
+            ImGui::PopStyleColor(1);
     
             // Effect params
             if (nodeOpen) {
