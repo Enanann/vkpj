@@ -41,9 +41,12 @@ EffectRegistry::EffectRegistry() {
         .max          = 1.0f 
     });
 
+    EffectCreateInfo sepia("Sepia", "build/src/shaders/sepia.spv", {.usePushConstant = false, .pushConstantSize = 1});
+
     mEffectCreateInfos.push_back(grayscale);
     mEffectCreateInfos.push_back(vignette);
     mEffectCreateInfos.push_back(hsl);
+    mEffectCreateInfos.push_back(sepia);
 }
 
 // const std::vector<Effect>& EffectRegistry::getEffects() const noexcept {

@@ -112,7 +112,7 @@ void ImGuiSystem::render() {
             auto nodeFlags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow;
             bool nodeOpen = ImGui::TreeNodeEx(e->getName().data(), nodeFlags);
     
-            // Drag and drop
+            // Drag and drop (uses the most recent widget)
             if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_None)) {
                 ImGui::SetDragDropPayload("EFFECT_CELL", &i, sizeof(size_t));
                 ImGui::Text("Dragging: %s", e->getName().data());
@@ -147,7 +147,7 @@ void ImGuiSystem::render() {
                 }
                 ImGui::EndDragDropTarget();
             }
-            
+
             // Remove effect
             ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 20.0f);
             ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor::HSV(0.0f, 0.6f, 0.6f));
@@ -188,6 +188,9 @@ void ImGuiSystem::render() {
             }
             if (ImGui::Selectable("HSL")) {
                 mRenderer->addEffect("HSL");
+            }
+            if (ImGui::Selectable("Sepia")) {
+                mRenderer->addEffect("Sepia");
             }
 
             ImGui::EndPopup();

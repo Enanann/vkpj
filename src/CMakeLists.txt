@@ -64,5 +64,6 @@ add_slang_shader_target(
     SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/shaders/grayscale.slang"
     SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/shaders/vignette.slang"
     SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/shaders/hsl.slang"
+    SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/shaders/sepia.slang"
 )
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_shaders)
