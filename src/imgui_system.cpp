@@ -43,6 +43,8 @@ ImGuiSystem::ImGuiSystem(Renderer* renderer)
     style.Colors[ImGuiCol_WindowBg]       = ImVec4(0.05f, 0.05f, 0.05f, 1.0f); // full opacity
     style.Colors[ImGuiCol_ChildBg]        = ImVec4(0.05f, 0.05f, 0.05f, 1.0f);
     style.Colors[ImGuiCol_DockingEmptyBg] = ImVec4(0.05f, 0.05f, 0.05f, 1.0f);
+    style.FontScaleDpi  = 1.36f;
+    style.FontScaleMain = 1.2f; 
 
     ImGui_ImplGlfw_InitForVulkan(mRenderer->getWindow().getGLFWHandle(), true);
     auto _swapchainImageFormat{static_cast<VkFormat>(mRenderer->getSwapchain().getSwapchainImageFormat())};
@@ -149,7 +151,7 @@ void ImGuiSystem::render() {
             }
 
             // Remove effect
-            ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 20.0f);
+            ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 25.0f);
             ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor::HSV(0.0f, 0.6f, 0.6f));
             float _size = ImGui::GetFrameHeight();
             if (ImGui::Button("X", ImVec2(_size, _size))) {
