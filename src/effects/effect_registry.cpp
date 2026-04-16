@@ -31,13 +31,13 @@ EffectRegistry::EffectRegistry() {
     hsl.params.push_back({
         .displayName  = "Saturation",
         .defaultValue = 0.0f,
-        .min          = 0.0f,
+        .min          = -1.0f,
         .max          = 1.0f 
     });
     hsl.params.push_back({
         .displayName  = "Lightness",
         .defaultValue = 0.0f,
-        .min          = 0.0f,
+        .min          = -1.0f,
         .max          = 1.0f 
     });
 

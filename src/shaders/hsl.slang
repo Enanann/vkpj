@@ -29,10 +29,13 @@ void compMain(uint3 threadId: SV_DispatchThreadID) {
 
     float3 hsl = RgbToHsl(float3(color.rgb));
     hsl.x = fract(hsl.x + pushConstant.x);
-    hsl.y = clamp(hsl.y + pushConstant.y, 0.0, 1.0);
+    // hsl.y = clamp(hsl.y + pushConstant.y, 0.0, 1.0);
     hsl.z = clamp(hsl.z + pushConstant.z, 0.0, 1.0);
 
     color.rgb = HslToRgb(hsl);
+
+    float gray = dot(color.rgb, float3(0.299, 0.587, 0.114));
+    color.rgb = saturate(lerp(float3(gray), color.rgb, (pushConstant.y + 1)));
 
     outputImage[texelCoord] = color;
 }
