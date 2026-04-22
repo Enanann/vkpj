@@ -194,6 +194,21 @@ void ImGuiSystem::render() {
             if (ImGui::Selectable("Sepia")) {
                 mRenderer->addEffect("Sepia");
             }
+            if (ImGui::Selectable("Lens Distortion")) {
+                mRenderer->addEffect("Lens Distortion");
+            }
+            if (ImGui::Selectable("Brightness & Contrast")) {
+                mRenderer->addEffect("Brightness and Contrast");
+            }
+            if (ImGui::Selectable("Exposure")) {
+                mRenderer->addEffect("Exposure");
+            }
+            if (ImGui::Selectable("Sobel")) {
+                mRenderer->addEffect("Sobel");
+            }
+            if (ImGui::Selectable("Gaussian Noise")) {
+                mRenderer->addEffect("Gaussian Noise");
+            }
 
             ImGui::EndPopup();
         }

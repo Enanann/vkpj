@@ -43,3 +43,15 @@ float3 HslToRgb(float3 color) {
                                                        select(5.0 <= H && H < 6.0, float3(c, 0, x), float3(c, 0, x)))))));
     return float3(_color + float3(m));
 }
+
+// Source: https://stackoverflow.com/questions/12964279/whats-the-origin-of-this-glsl-rand-one-liner
+// float rand(float2 co) {
+//     return fract(sin(dot(co, float2(12.9898, 78.233)) + pushConstant.x) * 43758.5453);
+// }
+
+// Source: https://www.shadertoy.com/view/4djSRW
+float hash12(uint2 p) {
+    float3 p3 = fract(float3(p.xyx) * .1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return fract((p3.x + p3.y) * p3.z);
+}

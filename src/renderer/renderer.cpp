@@ -12,6 +12,7 @@
 #include "vulkan/vulkan.hpp"
 #include "constant.hpp"
 
+#include <GLFW/glfw3.h>
 #include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_raii.hpp>
 #include <glm/glm.hpp>
@@ -257,6 +258,10 @@ void Renderer::draw() {
             int activeEffectIndex{0};        
             for (size_t i{0}; i < mEffects.size(); ++i) {
                 if (!mEffects[i]->mIsEnabled) continue;
+                float currentTime = static_cast<float>(fmod(glfwGetTime(), 1000.0));
+                if (mEffects[i]->getName() == "Gaussian Noise") {
+                    mEffects[i]->getParamsData()[0] = currentTime;
+                }
                 
                 if (activeEffectIndex == 0) {
                     currentSetToBind = &mComputeDescriptorSetsInit[mCurrentFrame];
