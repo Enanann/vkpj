@@ -114,6 +114,20 @@ EffectRegistry::EffectRegistry() {
         .max          = 1.0f
     });
 
+    EffectCreateInfo salt_pepper("Salt and Pepper", "build/src/shaders/salt_and_pepper.spv", {.usePushConstant = true, .pushConstantSize = 8});
+    salt_pepper.params.push_back({
+        .displayName  = "Seed",
+        .defaultValue = 0.0f,
+        .min          = 0.0f,
+        .max          = 0.0f
+    });
+    salt_pepper.params.push_back({
+        .displayName  = "Probability",
+        .defaultValue = 0.05f,
+        .min          = 0.0f,
+        .max          = 1.0f
+    });
+
     mEffectCreateInfos.push_back(grayscale);
     mEffectCreateInfos.push_back(vignette);
     mEffectCreateInfos.push_back(hsl);
@@ -123,6 +137,7 @@ EffectRegistry::EffectRegistry() {
     mEffectCreateInfos.push_back(exposure);
     mEffectCreateInfos.push_back(sobel);
     mEffectCreateInfos.push_back(gaussian_noise);
+    mEffectCreateInfos.push_back(salt_pepper);
 }
 
 // const std::vector<Effect>& EffectRegistry::getEffects() const noexcept {

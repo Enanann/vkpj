@@ -209,6 +209,9 @@ void ImGuiSystem::render() {
             if (ImGui::Selectable("Gaussian Noise")) {
                 mRenderer->addEffect("Gaussian Noise");
             }
+            if (ImGui::Selectable("Salt and Pepper")) {
+                mRenderer->addEffect("Salt and Pepper");
+            }
 
             ImGui::EndPopup();
         }

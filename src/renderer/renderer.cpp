@@ -259,7 +259,7 @@ void Renderer::draw() {
             for (size_t i{0}; i < mEffects.size(); ++i) {
                 if (!mEffects[i]->mIsEnabled) continue;
                 float currentTime = static_cast<float>(fmod(glfwGetTime(), 1000.0));
-                if (mEffects[i]->getName() == "Gaussian Noise") {
+                if (mEffects[i]->getName() == "Gaussian Noise" || mEffects[i]->getName() == "Salt and Pepper") {
                     mEffects[i]->getParamsData()[0] = currentTime;
                 }
                 

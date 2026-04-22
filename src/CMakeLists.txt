@@ -70,5 +70,6 @@ add_slang_shader_target(
     SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/shaders/exposure.slang"
     SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/shaders/sobel.slang"
     SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/shaders/gaussian_noise.slang"
+    SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/shaders/salt_and_pepper.slang"
 )
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_shaders)
