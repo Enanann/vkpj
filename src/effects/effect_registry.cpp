@@ -128,6 +128,10 @@ EffectRegistry::EffectRegistry() {
         .max          = 1.0f
     });
 
+    EffectCreateInfo pseudo_median_filter("Pseudo-Median filter", "build/src/shaders/pseudo_median_filter.spv", {.usePushConstant = false, .pushConstantSize = 1});
+
+    EffectCreateInfo median_filter("Median filter", "build/src/shaders/median_filter.spv", {.usePushConstant = false, .pushConstantSize = 1});
+
     mEffectCreateInfos.push_back(grayscale);
     mEffectCreateInfos.push_back(vignette);
     mEffectCreateInfos.push_back(hsl);
@@ -138,6 +142,8 @@ EffectRegistry::EffectRegistry() {
     mEffectCreateInfos.push_back(sobel);
     mEffectCreateInfos.push_back(gaussian_noise);
     mEffectCreateInfos.push_back(salt_pepper);
+    mEffectCreateInfos.push_back(pseudo_median_filter);
+    mEffectCreateInfos.push_back(median_filter);
 }
 
 // const std::vector<Effect>& EffectRegistry::getEffects() const noexcept {

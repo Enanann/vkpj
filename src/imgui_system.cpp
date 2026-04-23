@@ -91,6 +91,8 @@ void ImGuiSystem::render() {
         // open file dialog when user clicks this button
         if(ImGui::Button("open file dialog"))
             mFilebrowser.Open();
+
+        ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
     }
     ImGui::End();
         
@@ -211,6 +213,12 @@ void ImGuiSystem::render() {
             }
             if (ImGui::Selectable("Salt and Pepper")) {
                 mRenderer->addEffect("Salt and Pepper");
+            }
+            if (ImGui::Selectable("Pseudo-Median filter")) {
+                mRenderer->addEffect("Pseudo-Median filter");
+            }
+            if (ImGui::Selectable("Median filter")) {
+                mRenderer->addEffect("Median filter");
             }
 
             ImGui::EndPopup();
