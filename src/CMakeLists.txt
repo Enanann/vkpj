@@ -73,5 +73,6 @@ add_slang_shader_target(
     SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/shaders/salt_and_pepper.slang"
     SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/shaders/median_filter.slang"
     SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/shaders/pseudo_median_filter.slang"
+    SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/shaders/chromatic_aberration.slang"
 )
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_shaders)

@@ -131,6 +131,15 @@ EffectRegistry::EffectRegistry() {
     EffectCreateInfo pseudo_median_filter("Pseudo-Median filter", "build/src/shaders/pseudo_median_filter.spv", {.usePushConstant = false, .pushConstantSize = 1});
 
     EffectCreateInfo median_filter("Median filter", "build/src/shaders/median_filter.spv", {.usePushConstant = false, .pushConstantSize = 1});
+    
+    EffectCreateInfo chromatic_aberration("Chromatic aberration", "build/src/shaders/chromatic_aberration.spv", {.usePushConstant = true, .pushConstantSize = 4});
+    chromatic_aberration.params.push_back({
+        .displayName  = "Intensity",
+        .defaultValue = 0.2f,
+        .min          = 0.0f,
+        .max          = 1.0f
+
+    });
 
     mEffectCreateInfos.push_back(grayscale);
     mEffectCreateInfos.push_back(vignette);
@@ -144,6 +153,7 @@ EffectRegistry::EffectRegistry() {
     mEffectCreateInfos.push_back(salt_pepper);
     mEffectCreateInfos.push_back(pseudo_median_filter);
     mEffectCreateInfos.push_back(median_filter);
+    mEffectCreateInfos.push_back(chromatic_aberration);
 }
 
 // const std::vector<Effect>& EffectRegistry::getEffects() const noexcept {

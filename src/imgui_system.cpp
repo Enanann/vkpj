@@ -220,6 +220,9 @@ void ImGuiSystem::render() {
             if (ImGui::Selectable("Median filter")) {
                 mRenderer->addEffect("Median filter");
             }
+            if (ImGui::Selectable("Chromatic aberration")) {
+                mRenderer->addEffect("Chromatic aberration");
+            }
 
             ImGui::EndPopup();
         }
