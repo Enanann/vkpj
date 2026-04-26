@@ -4,7 +4,8 @@ void vertMain() {}
 void fragMain() {}
 
 [vk_binding(0, 0)]
-Texture2D<float4> inputImage;
+Sampler2D inputImage;
+// Texture2D<float4> inputImage;
 
 [vk_binding(1, 0)]
 [vk_image_format("rgba32f")]
@@ -41,6 +42,7 @@ void compMain(uint3 ThreadId: SV_DispatchThreadID) {
     float x_d = uv.x * factor / zoom + 0.5;
     float y_d = uv.y * factor / zoom + 0.5;
 
-    outputImage[texelCoord] = inputImage.Load(int3(int(x_d * size.x), int(y_d * size.y), 0));
+    // outputImage[texelCoord] = inputImage.Load(int3(int(x_d * size.x), int(y_d * size.y), 0));
+    outputImage[texelCoord] = inputImage.SampleLevel(float2(x_d, y_d), 0);
     // outputImage[texelCoord] = saturate(inputImage.Load(int3(texelCoord, 0)) + k1);
 }
