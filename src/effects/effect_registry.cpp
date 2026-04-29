@@ -132,13 +132,30 @@ EffectRegistry::EffectRegistry() {
 
     EffectCreateInfo median_filter("Median filter", "build/src/shaders/median_filter.spv", {.usePushConstant = false, .pushConstantSize = 1});
     
-    EffectCreateInfo chromatic_aberration("Chromatic aberration", "build/src/shaders/chromatic_aberration.spv", {.usePushConstant = true, .pushConstantSize = 4});
+    EffectCreateInfo chromatic_aberration("Chromatic aberration", "build/src/shaders/chromatic_aberration.spv", {.usePushConstant = true, .pushConstantSize = 16});
+    chromatic_aberration.params.push_back({
+        .displayName  = "Red offset",
+        .defaultValue = 0.5f,
+        .min          = 0.0f,
+        .max          = 1.0f
+    });
+    chromatic_aberration.params.push_back({
+        .displayName  = "Green offset",
+        .defaultValue = 0.7f,
+        .min          = 0.0f,
+        .max          = 1.0f
+    });
+    chromatic_aberration.params.push_back({
+        .displayName  = "Blue offset",
+        .defaultValue = 0.9f,
+        .min          = 0.0f,
+        .max          = 1.0f
+    });
     chromatic_aberration.params.push_back({
         .displayName  = "Intensity",
         .defaultValue = 0.2f,
         .min          = 0.0f,
         .max          = 1.0f
-
     });
 
     mEffectCreateInfos.push_back(grayscale);

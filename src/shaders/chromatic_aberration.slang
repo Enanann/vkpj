@@ -11,7 +11,7 @@ Sampler2D inputImage;
 RWTexture2D<float4> outputImage;
 
 [vk_push_constant]
-float pc;
+float4 pc;
 
 [shader("compute")]
 [numthreads(16, 16, 1)]
@@ -27,13 +27,18 @@ void compMain(uint3 ThreadId: SV_DispatchThreadID) {
     float dis = distance(uv, float2(0.5));
     float2 dir = normalize(uv - float2(0.5) + 1e-6);
 
-    float rOffset = pc * dis * 0.5;
-    float gOffset = pc * dis * 0.7;
-    float bOffset = pc * dis * 0.9;
+    float r_offset  = pc.x;
+    float g_offset  = pc.y;
+    float b_offset  = pc.z; 
+    float intensity = pc.w;
 
-    float2 r_uv = ((uv + rOffset * dir) - float2(0.5)) / lerp(1.0, 1.8, pc) + float2(0.5);
-    float2 g_uv = ((uv + gOffset * dir) - float2(0.5)) / lerp(1.0, 1.8, pc) + float2(0.5);
-    float2 b_uv = ((uv + bOffset * dir) - float2(0.5)) / lerp(1.0, 1.8, pc) + float2(0.5);
+    float rOffset = intensity * dis * r_offset;
+    float gOffset = intensity * dis * g_offset;
+    float bOffset = intensity * dis * b_offset;
+
+    float2 r_uv = ((uv + rOffset * dir) - float2(0.5)) / lerp(1.0, 1.8, intensity) + float2(0.5);
+    float2 g_uv = ((uv + gOffset * dir) - float2(0.5)) / lerp(1.0, 1.8, intensity) + float2(0.5);
+    float2 b_uv = ((uv + bOffset * dir) - float2(0.5)) / lerp(1.0, 1.8, intensity) + float2(0.5);
 
     float4 color_r = inputImage.SampleLevel(r_uv, 0);
     float4 color_g = inputImage.SampleLevel(g_uv, 0);
