@@ -223,6 +223,9 @@ void ImGuiSystem::render() {
             if (ImGui::Selectable("Chromatic aberration")) {
                 mRenderer->addEffect("Chromatic aberration");
             }
+            if (ImGui::Selectable("Affine Transformation")) {
+                mRenderer->addEffect("Affine Transformation");
+            }
 
             ImGui::EndPopup();
         }

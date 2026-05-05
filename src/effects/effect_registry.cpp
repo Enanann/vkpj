@@ -2,6 +2,7 @@
 #include "effect.hpp"
 
 #include <algorithm>
+#include <numbers>
 // #include <stdexcept>
 // #include <format>
 
@@ -158,6 +159,32 @@ EffectRegistry::EffectRegistry() {
         .max          = 1.0f
     });
 
+    EffectCreateInfo rotate_zoom("Affine Transformation", "build/src/shaders/affine_transformation.spv", {.usePushConstant = true, .pushConstantSize = 16});
+    rotate_zoom.params.push_back({
+        .displayName  = "Rotation",
+        .defaultValue = 0.0f,
+        .min          = -std::numbers::pi,
+        .max          = std::numbers::pi
+    });
+    rotate_zoom.params.push_back({
+        .displayName  = "Zoom",
+        .defaultValue = 1.0f,
+        .min          = 1e-6f,
+        .max          = 2.0f
+    });
+    rotate_zoom.params.push_back({
+        .displayName  = "PanX",
+        .defaultValue = 0.0f,
+        .min          = -2000.0f,
+        .max          = 2000.0f
+    });
+    rotate_zoom.params.push_back({
+        .displayName  = "PanY",
+        .defaultValue = 0.0f,
+        .min          = -2000.0f,
+        .max          = 2000.0f
+    });
+
     mEffectCreateInfos.push_back(grayscale);
     mEffectCreateInfos.push_back(vignette);
     mEffectCreateInfos.push_back(hsl);
@@ -171,6 +198,7 @@ EffectRegistry::EffectRegistry() {
     mEffectCreateInfos.push_back(pseudo_median_filter);
     mEffectCreateInfos.push_back(median_filter);
     mEffectCreateInfos.push_back(chromatic_aberration);
+    mEffectCreateInfos.push_back(rotate_zoom);
 }
 
 // const std::vector<Effect>& EffectRegistry::getEffects() const noexcept {
