@@ -8,9 +8,9 @@ Sampler::Sampler(const VulkanDevice& device, const SamplerConfig& config) : mVul
         .magFilter        = vk::Filter::eLinear,
         .minFilter        = vk::Filter::eLinear,
         .mipmapMode       = vk::SamplerMipmapMode::eLinear,
-        .addressModeU     = vk::SamplerAddressMode::eClampToBorder,
-        .addressModeV     = vk::SamplerAddressMode::eClampToBorder,
-        .addressModeW     = vk::SamplerAddressMode::eClampToBorder,
+        .addressModeU     = vk::SamplerAddressMode::eMirroredRepeat,
+        .addressModeV     = vk::SamplerAddressMode::eMirroredRepeat,
+        .addressModeW     = vk::SamplerAddressMode::eMirroredRepeat,
         .anisotropyEnable = vk::True,
         .maxAnisotropy    = properties.limits.maxSamplerAnisotropy
     };
