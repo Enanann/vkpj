@@ -12,8 +12,13 @@ Texture2D<float4> inputImage;
 [vk_image_format("rgba32f")]
 RWTexture2D<float4> outputImage;
 
+struct pushConstants {
+    int p;
+    float seed;
+    float intensity;
+};
 [vk_push_constant]
-float2 pushConstant; // seed, probability
+pushConstants pc;
 
 [shader("compute")]
 [numthreads(16, 16, 1)]
@@ -27,10 +32,10 @@ void compMain(uint3 ThreadId: SV_DispatchThreadID) {
 
     float4 color = inputImage.Load(int3(texelCoord, 0));
 
-    uint2 seed = uint2(pushConstant.x * 10000);
+    uint2 seed = uint2(pc.seed * 10000);
     float u = hash12(ThreadId.xy + seed);
 
-    float P = pushConstant.y;
+    float P = pc.intensity;
 
     float3 noise = color.rgb;
 

@@ -9,7 +9,7 @@
 EffectRegistry::EffectRegistry() {
     EffectCreateInfo grayscale{"Grayscale", "build/src/shaders/grayscale.spv", {.usePushConstant = false, .pushConstantSize = 1}};
 
-    EffectCreateInfo vignette{"Vignette", "build/src/shaders/vignette.spv", {.usePushConstant = true, .pushConstantSize = 8}};
+    EffectCreateInfo vignette{"Vignette", "build/src/shaders/vignette.spv", {.usePushConstant = true, .pushConstantSize = 12}};
     vignette.params.push_back({
         .displayName  = "Radius",
         .defaultValue = 0.8,
@@ -23,7 +23,7 @@ EffectRegistry::EffectRegistry() {
         .max = 3.0
     });
 
-    EffectCreateInfo hsl{"HSL", "build/src/shaders/hsl.spv", {.usePushConstant = true, .pushConstantSize = 12}};
+    EffectCreateInfo hsl{"HSL", "build/src/shaders/hsl.spv", {.usePushConstant = true, .pushConstantSize = 16}};
     hsl.params.push_back({
         .displayName  = "Hue",
         .defaultValue = 0.0f,
@@ -45,7 +45,7 @@ EffectRegistry::EffectRegistry() {
 
     EffectCreateInfo sepia("Sepia", "build/src/shaders/sepia.spv", {.usePushConstant = false, .pushConstantSize = 1});
 
-    EffectCreateInfo lens_distortion("Lens Distortion", "build/src/shaders/lens_distortion.spv", {.usePushConstant = true, .pushConstantSize = 16});
+    EffectCreateInfo lens_distortion("Lens Distortion", "build/src/shaders/lens_distortion.spv", {.usePushConstant = true, .pushConstantSize = 20});
     lens_distortion.params.push_back({
         .displayName  = "k1",
         .defaultValue = 0.0f,
@@ -71,7 +71,7 @@ EffectRegistry::EffectRegistry() {
         .max          = 3.0f
     });
 
-    EffectCreateInfo bri_con("Brightness and Contrast", "build/src/shaders/brightness_contrast.spv", {.usePushConstant = true, .pushConstantSize = 8});
+    EffectCreateInfo bri_con("Brightness and Contrast", "build/src/shaders/brightness_contrast.spv", {.usePushConstant = true, .pushConstantSize = 12});
     bri_con.params.push_back({
         .displayName  = "Brightness",
         .defaultValue = 0.0f,
@@ -85,7 +85,7 @@ EffectRegistry::EffectRegistry() {
         .max          = 5.0f
     });
 
-    EffectCreateInfo exposure("Exposure", "build/src/shaders/exposure.spv", {.usePushConstant = true, .pushConstantSize = 8});
+    EffectCreateInfo exposure("Exposure", "build/src/shaders/exposure.spv", {.usePushConstant = true, .pushConstantSize = 12});
     exposure.params.push_back({
         .displayName  = "Black level",
         .defaultValue = 0.0f,
@@ -101,7 +101,7 @@ EffectRegistry::EffectRegistry() {
 
     EffectCreateInfo sobel("Sobel", "build/src/shaders/sobel.spv", {.usePushConstant = false, .pushConstantSize = 1});
 
-    EffectCreateInfo gaussian_noise("Gaussian Noise", "build/src/shaders/gaussian_noise.spv", {.usePushConstant = true, .pushConstantSize = 8});
+    EffectCreateInfo gaussian_noise("Gaussian Noise", "build/src/shaders/gaussian_noise.spv", {.usePushConstant = true, .pushConstantSize = 12});
     gaussian_noise.params.push_back({
         .visible      = false,
         .displayName  = "Seed",
@@ -116,7 +116,7 @@ EffectRegistry::EffectRegistry() {
         .max          = 1.0f
     });
 
-    EffectCreateInfo salt_pepper("Salt and Pepper", "build/src/shaders/salt_and_pepper.spv", {.usePushConstant = true, .pushConstantSize = 8});
+    EffectCreateInfo salt_pepper("Salt and Pepper", "build/src/shaders/salt_and_pepper.spv", {.usePushConstant = true, .pushConstantSize = 12});
     salt_pepper.params.push_back({
         .visible      = false,
         .displayName  = "Seed",
@@ -135,7 +135,7 @@ EffectRegistry::EffectRegistry() {
 
     EffectCreateInfo median_filter("Median filter", "build/src/shaders/median_filter.spv", {.usePushConstant = false, .pushConstantSize = 1});
     
-    EffectCreateInfo chromatic_aberration("Chromatic aberration", "build/src/shaders/chromatic_aberration.spv", {.usePushConstant = true, .pushConstantSize = 16});
+    EffectCreateInfo chromatic_aberration("Chromatic aberration", "build/src/shaders/chromatic_aberration.spv", {.usePushConstant = true, .pushConstantSize = 20});
     chromatic_aberration.params.push_back({
         .displayName  = "Red offset",
         .defaultValue = 0.5f,
@@ -161,7 +161,7 @@ EffectRegistry::EffectRegistry() {
         .max          = 1.0f
     });
 
-    EffectCreateInfo rotate_zoom("Affine Transformation", "build/src/shaders/affine_transformation.spv", {.usePushConstant = true, .pushConstantSize = 16});
+    EffectCreateInfo rotate_zoom("Affine Transformation", "build/src/shaders/affine_transformation.spv", {.usePushConstant = true, .pushConstantSize = 20});
     rotate_zoom.params.push_back({
         .displayName  = "Rotation",
         .defaultValue = 0.0f,
@@ -189,7 +189,19 @@ EffectRegistry::EffectRegistry() {
 
     EffectCreateInfo gaussian_blur("Gaussian blur", "build/src/shaders/gaussian_blur.spv", {.usePushConstant = true, .pushConstantSize = 4}, 2);
 
-    EffectCreateInfo canny("Canny", "build/src/shaders/canny.spv", {.usePushConstant = true, .pushConstantSize = 4}, 11);
+    EffectCreateInfo canny("Canny", "build/src/shaders/canny.spv", {.usePushConstant = true, .pushConstantSize = 12}, 11);
+    canny.params.push_back({
+        .displayName  = "low threshold",
+        .defaultValue = 0.05f,
+        .min          = 0.0f,
+        .max          = 0.2f,
+    });
+    canny.params.push_back({
+        .displayName  = "high threshold",
+        .defaultValue = 0.15f,
+        .min          = 0.0f,
+        .max          = 1.0f,
+    });
 
 
     mEffectCreateInfos.push_back(grayscale);

@@ -12,8 +12,14 @@ Texture2D<float4> inputImage;
 [vk_image_format("rgba32f")]
 RWTexture2D<float4> outputImage;
 
+struct pushConstants {
+    int p;
+    float seed;
+    float intensity;
+};
+
 [vk_push_constant]
-float2 pushConstant;
+pushConstants pc;
 
 static float PI_2 = 3.1415926538 * 2.0;
 
@@ -29,7 +35,7 @@ void compMain(uint3 ThreadId: SV_DispatchThreadID) {
 
     float4 color = inputImage.Load(int3(texelCoord, 0));
 
-    uint2 seed = uint2(pushConstant.x * 10000);
+    uint2 seed = uint2(pc.seed * 10000);
     float2 sample = float2(
         max(hash12(ThreadId.xy + seed), 1e-6),
         max(hash12(ThreadId.xy + seed + int2(10, 12)), 1e-6)
@@ -39,7 +45,7 @@ void compMain(uint3 ThreadId: SV_DispatchThreadID) {
     float z0 = r * cos(PI_2 * sample.y);
     // float z1 = r * sin(PI_2 * sample.y);
 
-    float3 noise = float3(z0, z0, z0) * pushConstant.y;
+    float3 noise = float3(z0, z0, z0) * pc.intensity;
     outputImage[texelCoord] = saturate(float4(color.rgb + noise, color.a));
     // outputImage[texelCoord] = float4(z0, z0, z0, 1.0);
 }

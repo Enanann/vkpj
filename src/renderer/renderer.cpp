@@ -258,10 +258,10 @@ void Renderer::draw() {
             int activeEffectIndex{0};        
             for (size_t i{0}; i < mEffects.size(); ++i) {
                 if (!mEffects[i]->mIsEnabled) continue;
-                for (uint32_t pass{0}; pass < mEffects[i]->mPasses; ++pass) {
+                for (int pass{0}; pass < mEffects[i]->getPasses(); ++pass) {
                     float currentTime = static_cast<float>(fmod(glfwGetTime(), 1000.0));
                     if (mEffects[i]->getName() == "Gaussian Noise" || mEffects[i]->getName() == "Salt and Pepper") {
-                        mEffects[i]->getParamsData()[0] = currentTime;
+                        mEffects[i]->setSeed(currentTime);
                     }
                     
                     if (activeEffectIndex == 0) {
@@ -276,11 +276,8 @@ void Renderer::draw() {
                     }
         
                     if (mEffects[i]->usePushConstant()) {
-                        if (mEffects[i]->mPasses > 1) {
-                            frame.computeCommandBuffer.setPushConstant(mEffects[i]->getPipeline().getLayout(), 0, 4, &pass);
-                        } else {
-                            frame.computeCommandBuffer.setPushConstant(mEffects[i]->getPipeline().getLayout(), 0, mEffects[i]->getFloatParamSize(), mEffects[i]->getParamsData().data());
-                        }
+                        std::vector<uint8_t> pushData{mEffects[i]->getPackedPushConstants(pass)};
+                        frame.computeCommandBuffer.setPushConstant(mEffects[i]->getPipeline().getLayout(), 0, static_cast<uint32_t>(pushData.size()), pushData.data());
                     }
         
                     frame.computeCommandBuffer.record(imageIndex, *currentWrite, mEffects[i]->getPipeline(), *currentSetToBind);

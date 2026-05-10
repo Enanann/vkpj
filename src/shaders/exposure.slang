@@ -10,8 +10,14 @@ Texture2D<float4> inputImage;
 [[vk_image_format("rgba32f")]]
 RWTexture2D<float4> outputImage;
 
+struct pushConstants {
+    int p;
+    float blackLevel;
+    float exposure;
+};
+
 [[vk_push_constant]]
-float2 pushConstant; // black level, exposure
+pushConstants pc;
 
 [shader("compute")]
 [numthreads(16, 16, 1)]
@@ -28,8 +34,8 @@ void compMain(uint3 threadId: SV_DispatchThreadID)
 
     float4 color = inputImage.Load(int3(texelCoord, 0));
 
-    float black_level = pushConstant.x;
-    float exposure   = pushConstant.y;
+    float blackLevel = pc.blackLevel;
+    float exposure   = pc.exposure;
 
-    outputImage[texelCoord] = (color - black_level) * pow(2, exposure);
+    outputImage[texelCoord] = (color - blackLevel) * pow(2, exposure);
 }

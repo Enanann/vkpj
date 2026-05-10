@@ -10,8 +10,16 @@ Sampler2D inputImage;
 [vk_binding(1, 0)]
 RWTexture2D<float4> outputImage;
 
+struct pushConstants {
+    int p;
+    float red_offset;
+    float green_offset;
+    float blue_offset;
+    float intensity;
+};
+
 [vk_push_constant]
-float4 pc;
+pushConstants pc;
 
 [shader("compute")]
 [numthreads(16, 16, 1)]
@@ -27,10 +35,10 @@ void compMain(uint3 ThreadId: SV_DispatchThreadID) {
     float dis = distance(uv, float2(0.5));
     float2 dir = normalize(uv - float2(0.5) + 1e-6);
 
-    float r_offset  = pc.x;
-    float g_offset  = pc.y;
-    float b_offset  = pc.z; 
-    float intensity = pc.w;
+    float r_offset  = pc.red_offset;
+    float g_offset  = pc.green_offset;
+    float b_offset  = pc.blue_offset; 
+    float intensity = pc.intensity;
 
     float rOffset = intensity * dis * r_offset;
     float gOffset = intensity * dis * g_offset;

@@ -25,7 +25,6 @@ struct EffectCreateInfo {
 class Effect {
 public:
     bool mIsEnabled;
-    uint32_t mPasses;
 
     Effect(std::string_view, VulkanDevice&, const std::filesystem::path&, DescriptorSetLayout&, const ComputePipelineConfig&);
     Effect(VulkanDevice&, DescriptorSetLayout&, const EffectCreateInfo&);
@@ -34,10 +33,13 @@ public:
     const ComputePipeline& getPipeline() const;
     bool usePushConstant();
 
+    void setSeed(float seed);
+
     const std::string_view getName() const;
     std::vector<EffectParam>& getParams(); 
-    std::vector<float>& getParamsData(); 
-    uint32_t getFloatParamSize();
+    std::vector<float>& getParamsData();
+    std::vector<uint8_t> getPackedPushConstants(uint32_t currentPass);
+    int getPasses();
 private:
     void addParam(EffectParam);
 
@@ -45,6 +47,6 @@ private:
 
     std::optional<Shader> mShader;
     std::optional<ComputePipeline> mPipeline;
-    std::vector<EffectParam> mParams;
-    std::vector<float>       mParamsData;
+    EffectParams             mParams;             
+    std::vector<EffectParam> mParamsMetaData;
 };

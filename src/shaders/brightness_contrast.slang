@@ -10,8 +10,14 @@ Texture2D<float4> inputImage;
 [[vk_image_format("rgba32f")]]
 RWTexture2D<float4> outputImage;
 
+struct pushConstants {
+    int p;
+    float brightness;
+    float contrast;
+};
+
 [[vk_push_constant]]
-float2 pushConstant; // brightness, contrast
+pushConstants pc;
 
 [shader("compute")]
 [numthreads(16, 16, 1)]
@@ -27,8 +33,8 @@ void compMain(uint3 ThreadId: SV_DispatchThreadID) {
 
     float4 color = inputImage.Load(int3(texelCoord, 0));
 
-    float brightness = pushConstant.x;
-    float contrast   = pushConstant.y;
+    float brightness = pc.brightness;
+    float contrast   = pc.contrast;
 
     float nr = contrast * (color.r - 0.5) + 0.5 + brightness;
     float ng = contrast * (color.g - 0.5) + 0.5 + brightness;

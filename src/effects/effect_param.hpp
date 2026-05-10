@@ -10,3 +10,8 @@ struct EffectParam {
     float min;
     float max;
 };
+
+struct EffectParams {
+    int passes{1};
+    std::vector<float> paramsData;
+};

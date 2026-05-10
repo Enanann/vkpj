@@ -9,8 +9,16 @@ Sampler2D<float4> inputImage;
 [vk_binding(1, 0)]
 RWTexture2D<float4> outputImage;
 
+struct pushConstants {
+    int p;
+    float rotate;
+    float zoom;
+    float pan_x;
+    float pan_y;
+};
+
 [vk_push_constant]
-float4 pc;
+pushConstants pc;
 
 [shader("compute")]
 [numthreads(16, 16, 1)]
@@ -25,9 +33,9 @@ void compMain(uint3 ThreadId: SV_DispatchThreadID) {
 
     float2 center = float2(size) * 0.5;
 
-    float rotate = pc.x;
-    float zoom = pc.y;               
-    float2 pan = float2(pc.z, pc.w); // in pixels
+    float rotate = pc.rotate;
+    float zoom = pc.zoom;               
+    float2 pan = float2(pc.pan_x, pc.pan_y); // in pixels
 
     float c = cos(rotate);
     float s = sin(rotate);

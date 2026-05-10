@@ -11,8 +11,16 @@ Sampler2D inputImage;
 [vk_image_format("rgba32f")]
 RWTexture2D<float4> outputImage;
 
+struct pushConstants {
+    int p;
+    float k1;
+    float k2;
+    float k3;
+    float zoom;
+};
+
 [vk_push_constant]
-float4 pushConstant; // k1, k2, k3, zoom
+pushConstants pc;
 
 [shader("compute")]
 [numthreads(16, 16, 1)]
@@ -24,10 +32,10 @@ void compMain(uint3 ThreadId: SV_DispatchThreadID) {
 
     int2 texelCoord = int2(ThreadId.xy);
 
-    float k1 = pushConstant.x;
-    float k2 = pushConstant.y;
-    float k3 = pushConstant.z;
-    float zoom = pushConstant.w;
+    float k1 = pc.k1;
+    float k2 = pc.k2;
+    float k3 = pc.k3;
+    float zoom = pc.zoom;
 
     // normalized to [-0.5, 0.5]
     float2 uv = float2(texelCoord) / float2(size) - 0.5;

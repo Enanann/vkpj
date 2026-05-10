@@ -3,18 +3,21 @@ void vertMain() {}
 [shader("fragment")]
 void fragMain() {}
 
-[[vk_binding(0, 0)]]
+[vk_binding(0, 0)]
 Texture2D<float4> inputImage;
 
-[[vk_binding(1, 0)]]
-[[vk_image_format("rgba32f")]]
+[vk_binding(1, 0)]
+[vk_image_format("rgba32f")]
 RWTexture2D<float4> outputImage;
 
-static float radius = 0.8;    // 0 to 1 
-static float intensity = 1.0; // 0 to 1
+struct pushConstants {
+    int p;
+    float radius;
+    float intensity;
+};
 
-[[vk_push_constant]]
-float2 pushConstant; // [radius, intensity]
+[vk_push_constant]
+pushConstants pc;
 
 [shader("compute")]
 [numthreads(16, 16, 1)]
@@ -35,8 +38,8 @@ void compMain(uint3 threadId: SV_DispatchThreadID)
     float dist = sqrt(pow(u.x - 0.5, 2) + pow(u.y - 0.5, 2));
 
     // Vignette mask
-    float mask = saturate(1.0 - dist * pushConstant[0]); // clip to [0,1]
-    mask = lerp(1.0, mask, pushConstant[1]);          // linear interpolation lerp(x, y, s) = x + s * (y - x)
+    float mask = saturate(1.0 - dist * pc.radius); // clip to [0,1]
+    mask = lerp(1.0, mask, pc.intensity);          // linear interpolation lerp(x, y, s) = x + s * (y - x)
 
     outputImage[texelCoord] = color * mask;
 }

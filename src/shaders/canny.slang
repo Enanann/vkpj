@@ -9,21 +9,27 @@ Sampler2D inputImage;
 [vk_binding(1, 0)]
 RWTexture2D<float4> outputImage;
 
+struct pushConstants {
+    int p;
+    float low_threshold;
+    float high_threshold;
+};
+
 [vk_push_constant]
-int pc; // passes
- 
+pushConstants pc;
+
 static const float weight[5] = { 0.227027, 0.1945946, 0.1216216, 0.054054, 0.016216 };
 
 float4 gaussian_blur(float2 uv, float2 texel_offset) {
     float3 result = inputImage.SampleLevel(uv, 0).rgb * weight[0];
 
-    if (pc == 0) { // horizontal
+    if (pc.p == 0) { // horizontal
         for (int i = 1; i < weight.getCount(); ++i) {
             float2 offset = float2(texel_offset.x * i, 0.0);
             result += inputImage.SampleLevel(uv + offset, 0).rgb * weight[i];
             result += inputImage.SampleLevel(uv - offset, 0).rgb * weight[i];
         }
-    } else if (pc == 1) { // vertical
+    } else if (pc.p == 1) { // vertical
         for (int i = 1; i < weight.getCount(); ++i) {
             float2 offset = float2(0.0, texel_offset.y * i);
             result += inputImage.SampleLevel(uv + offset, 0).rgb * weight[i];
@@ -88,13 +94,13 @@ float edgeRounding(float deg) {
     }
 }
 
-static const float low_threshold = 0.02;
-static const float high_threshold = 0.136;
+// static const float low_threshold = 0.02;
+// static const float high_threshold = 0.136;
 
 float doubleThreshold(float i) {
-    if (i < low_threshold) {
+    if (i < pc.low_threshold) {
         return 0.0;
-    } else if (i > high_threshold) {
+    } else if (i > pc.high_threshold) {
         return 1.0;
     } else {
         return 0.5;
@@ -105,15 +111,15 @@ float hysteresis(int2 texelCoord, uint2 size) {
     float center = inputImage.Load(int3(texelCoord, 0)).r;
     
     // not weak edge
-    if (center < low_threshold) return 0.0;
-    if (center > high_threshold) return 1.0;
+    if (center < pc.low_threshold) return 0.0;
+    if (center > pc.high_threshold) return 1.0;
 
     // weak edge
     [unroll]
     for (int i = 0; i < 9; ++i) {
         int2 coord = clamp(texelCoord + offsets[i], int2(0, 0), size - 1);
         float neighbor = inputImage.Load(int3(coord, 0)).r;
-        if (neighbor > high_threshold) {
+        if (neighbor > pc.high_threshold) {
             return 1.0; 
         }
     }
@@ -145,7 +151,7 @@ void compMain(uint3 ThreadId: SV_DispatchThreadID) {
       / | \
     SW  S  SE
     */
-    if (pc == 2) {
+    if (pc.p == 2) {
         float Gx;
         float Gy;
         sobel(texelCoord, size, Gx, Gy);
@@ -222,19 +228,19 @@ void compMain(uint3 ThreadId: SV_DispatchThreadID) {
         }
 
         result = float4(float3(Mag), 1.0);
-    } else if (pc == 4) {
+    } else if (pc.p == 4) {
         result = float4(float3(doubleThreshold(inputImage.SampleLevel(uv, 0).r)), 1.0);
-    } else if (pc == 5) {
+    } else if (pc.p == 5) {
         result = float4(float3(hysteresis(texelCoord, size)), 1.0);
-    } else if (pc == 6) {
+    } else if (pc.p == 6) {
         result = float4(float3(hysteresis(texelCoord, size)), 1.0);
-    } else if (pc == 7) {
+    } else if (pc.p == 7) {
         result = float4(float3(hysteresis(texelCoord, size)), 1.0);
-    } else if (pc == 8) {
+    } else if (pc.p == 8) {
         result = float4(float3(hysteresis(texelCoord, size)), 1.0);
-    } else if (pc == 9) {
+    } else if (pc.p == 9) {
         result = float4(float3(hysteresis(texelCoord, size)), 1.0);
-    } else if (pc == 10) {
+    } else if (pc.p == 10) {
         result = float4(float3(hysteresis(texelCoord, size)), 1.0);
     } else {
         result = gaussian_blur(uv, texel_offset);
