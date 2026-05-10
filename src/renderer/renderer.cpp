@@ -258,30 +258,36 @@ void Renderer::draw() {
             int activeEffectIndex{0};        
             for (size_t i{0}; i < mEffects.size(); ++i) {
                 if (!mEffects[i]->mIsEnabled) continue;
-                float currentTime = static_cast<float>(fmod(glfwGetTime(), 1000.0));
-                if (mEffects[i]->getName() == "Gaussian Noise" || mEffects[i]->getName() == "Salt and Pepper") {
-                    mEffects[i]->getParamsData()[0] = currentTime;
+                for (uint32_t pass{0}; pass < mEffects[i]->mPasses; ++pass) {
+                    float currentTime = static_cast<float>(fmod(glfwGetTime(), 1000.0));
+                    if (mEffects[i]->getName() == "Gaussian Noise" || mEffects[i]->getName() == "Salt and Pepper") {
+                        mEffects[i]->getParamsData()[0] = currentTime;
+                    }
+                    
+                    if (activeEffectIndex == 0) {
+                        currentSetToBind = &mComputeDescriptorSetsInit[mCurrentFrame];
+                        currentWrite = &mFrameDatas[mCurrentFrame].ping.value();
+                    } else if (activeEffectIndex % 2 == 1) {
+                        currentSetToBind = &mComputeDescriptorSetsAtoB[mCurrentFrame];
+                        currentWrite = &mFrameDatas[mCurrentFrame].pong.value();
+                    } else {
+                        currentSetToBind = &mComputeDescriptorSetsBtoA[mCurrentFrame];
+                        currentWrite = &mFrameDatas[mCurrentFrame].ping.value();
+                    }
+        
+                    if (mEffects[i]->usePushConstant()) {
+                        if (mEffects[i]->mPasses > 1) {
+                            frame.computeCommandBuffer.setPushConstant(mEffects[i]->getPipeline().getLayout(), 0, 4, &pass);
+                        } else {
+                            frame.computeCommandBuffer.setPushConstant(mEffects[i]->getPipeline().getLayout(), 0, mEffects[i]->getFloatParamSize(), mEffects[i]->getParamsData().data());
+                        }
+                    }
+        
+                    frame.computeCommandBuffer.record(imageIndex, *currentWrite, mEffects[i]->getPipeline(), *currentSetToBind);
+        
+                    currentImage = currentWrite;
+                    activeEffectIndex++;
                 }
-                
-                if (activeEffectIndex == 0) {
-                    currentSetToBind = &mComputeDescriptorSetsInit[mCurrentFrame];
-                    currentWrite = &mFrameDatas[mCurrentFrame].ping.value();
-                } else if (activeEffectIndex % 2 == 1) {
-                    currentSetToBind = &mComputeDescriptorSetsAtoB[mCurrentFrame];
-                    currentWrite = &mFrameDatas[mCurrentFrame].pong.value();
-                } else {
-                    currentSetToBind = &mComputeDescriptorSetsBtoA[mCurrentFrame];
-                    currentWrite = &mFrameDatas[mCurrentFrame].ping.value();
-                }
-    
-                if (mEffects[i]->usePushConstant()) {
-                    frame.computeCommandBuffer.setPushConstant(mEffects[i]->getPipeline().getLayout(), 0, mEffects[i]->getFloatParamSize(), mEffects[i]->getParamsData().data());
-                }
-    
-                frame.computeCommandBuffer.record(imageIndex, *currentWrite, mEffects[i]->getPipeline(), *currentSetToBind);
-    
-                currentImage = currentWrite;
-                activeEffectIndex++;
             }
             frame.computeCommandBuffer.end();
 
