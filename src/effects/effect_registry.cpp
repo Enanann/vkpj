@@ -189,6 +189,8 @@ EffectRegistry::EffectRegistry() {
 
     EffectCreateInfo gaussian_blur("Gaussian blur", "build/src/shaders/gaussian_blur.spv", {.usePushConstant = true, .pushConstantSize = 4}, 2);
 
+    EffectCreateInfo canny("Canny", "build/src/shaders/canny.spv", {.usePushConstant = true, .pushConstantSize = 4}, 11);
+
 
     mEffectCreateInfos.push_back(grayscale);
     mEffectCreateInfos.push_back(vignette);
@@ -205,6 +207,7 @@ EffectRegistry::EffectRegistry() {
     mEffectCreateInfos.push_back(chromatic_aberration);
     mEffectCreateInfos.push_back(rotate_zoom);
     mEffectCreateInfos.push_back(gaussian_blur);
+    mEffectCreateInfos.push_back(canny);
 }
 
 // const std::vector<Effect>& EffectRegistry::getEffects() const noexcept {

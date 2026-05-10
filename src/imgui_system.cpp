@@ -230,6 +230,9 @@ void ImGuiSystem::render() {
             if (ImGui::Selectable("Gaussian blur")) {
                 mRenderer->addEffect("Gaussian blur");
             }
+            if (ImGui::Selectable("Canny")) {
+                mRenderer->addEffect("Canny");
+            }
 
             ImGui::EndPopup();
         }
