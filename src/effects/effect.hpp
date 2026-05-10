@@ -4,6 +4,7 @@
 #include "compute_pipeline.hpp"
 #include "effect_param.hpp"
 
+#include <cstdint>
 #include <filesystem>
 #include <optional>
 #include <string_view>
@@ -17,12 +18,14 @@ struct EffectCreateInfo {
     std::string                 name;
     const std::filesystem::path path;
     ComputePipelineConfig       config;
+    uint32_t                    passes{1};
     std::vector<EffectParam>    params;
 };
 
 class Effect {
 public:
     bool mIsEnabled;
+    uint32_t mPasses;
 
     Effect(std::string_view, VulkanDevice&, const std::filesystem::path&, DescriptorSetLayout&, const ComputePipelineConfig&);
     Effect(VulkanDevice&, DescriptorSetLayout&, const EffectCreateInfo&);

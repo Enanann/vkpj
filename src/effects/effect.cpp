@@ -13,6 +13,7 @@ Effect::Effect(std::string_view name, VulkanDevice& device, const std::filesyste
 
 Effect::Effect(VulkanDevice& device, DescriptorSetLayout& layout, const EffectCreateInfo& createInfo) {
     mIsEnabled = true;
+    mPasses = createInfo.passes;
     mName = createInfo.name;
     mShader.emplace(device, createInfo.path);
     mPipeline.emplace(device, *mShader, layout, createInfo.config);
