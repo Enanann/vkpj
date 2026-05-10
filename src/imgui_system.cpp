@@ -166,6 +166,7 @@ void ImGuiSystem::render() {
                 ImGui::Checkbox("Enable", &e->mIsEnabled);
                 if (e->getPipeline().mUsePushConstant) {
                     for (size_t j{0}; j < e->getParams().size(); ++j) {
+                        if (!e->getParams()[j].visible) continue;
                         const auto& p{e->getParams()[j]};
                         ImGui::SliderFloat(p.displayName.c_str(), &e->getParamsData()[j], p.min, p.max);
                     }
@@ -225,6 +226,9 @@ void ImGuiSystem::render() {
             }
             if (ImGui::Selectable("Affine Transformation")) {
                 mRenderer->addEffect("Affine Transformation");
+            }
+            if (ImGui::Selectable("Gaussian blur")) {
+                mRenderer->addEffect("Gaussian blur");
             }
 
             ImGui::EndPopup();

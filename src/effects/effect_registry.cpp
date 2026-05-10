@@ -103,6 +103,7 @@ EffectRegistry::EffectRegistry() {
 
     EffectCreateInfo gaussian_noise("Gaussian Noise", "build/src/shaders/gaussian_noise.spv", {.usePushConstant = true, .pushConstantSize = 8});
     gaussian_noise.params.push_back({
+        .visible      = false,
         .displayName  = "Seed",
         .defaultValue = 0.0f,
         .min          = 0.0f,
@@ -117,6 +118,7 @@ EffectRegistry::EffectRegistry() {
 
     EffectCreateInfo salt_pepper("Salt and Pepper", "build/src/shaders/salt_and_pepper.spv", {.usePushConstant = true, .pushConstantSize = 8});
     salt_pepper.params.push_back({
+        .visible      = false,
         .displayName  = "Seed",
         .defaultValue = 0.0f,
         .min          = 0.0f,
@@ -185,6 +187,9 @@ EffectRegistry::EffectRegistry() {
         .max          = 2000.0f
     });
 
+    EffectCreateInfo gaussian_blur("Gaussian blur", "build/src/shaders/gaussian_blur.spv", {.usePushConstant = true, .pushConstantSize = 4}, 2);
+
+
     mEffectCreateInfos.push_back(grayscale);
     mEffectCreateInfos.push_back(vignette);
     mEffectCreateInfos.push_back(hsl);
@@ -199,6 +204,7 @@ EffectRegistry::EffectRegistry() {
     mEffectCreateInfos.push_back(median_filter);
     mEffectCreateInfos.push_back(chromatic_aberration);
     mEffectCreateInfos.push_back(rotate_zoom);
+    mEffectCreateInfos.push_back(gaussian_blur);
 }
 
 // const std::vector<Effect>& EffectRegistry::getEffects() const noexcept {
