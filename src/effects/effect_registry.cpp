@@ -187,17 +187,29 @@ EffectRegistry::EffectRegistry() {
         .max          = 2000.0f
     });
 
-    EffectCreateInfo gaussian_blur("Gaussian blur", "build/src/shaders/gaussian_blur.spv", {.usePushConstant = true, .pushConstantSize = 4}, 2);
+    EffectCreateInfo gaussian_blur("Gaussian blur", "build/src/shaders/gaussian_blur.spv", {.usePushConstant = true, .pushConstantSize = 8}, 2);
+    gaussian_blur.params.push_back({
+        .displayName  = "Sigma",
+        .defaultValue = 1.5f,
+        .min          = 0.5f,
+        .max          = 10.0f,
+    });
 
-    EffectCreateInfo canny("Canny", "build/src/shaders/canny.spv", {.usePushConstant = true, .pushConstantSize = 12}, 11);
+    EffectCreateInfo canny("Canny", "build/src/shaders/canny.spv", {.usePushConstant = true, .pushConstantSize = 16}, 11);
     canny.params.push_back({
-        .displayName  = "low threshold",
+        .displayName  = "Sigma",
+        .defaultValue = 1.5f,
+        .min          = 0.5f,
+        .max          = 10.0f,
+    });
+    canny.params.push_back({
+        .displayName  = "Low threshold",
         .defaultValue = 0.05f,
         .min          = 0.0f,
         .max          = 0.2f,
     });
     canny.params.push_back({
-        .displayName  = "high threshold",
+        .displayName  = "High threshold",
         .defaultValue = 0.15f,
         .min          = 0.0f,
         .max          = 1.0f,

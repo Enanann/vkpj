@@ -12,13 +12,17 @@ RWTexture2D<float4> outputImage;
 
 struct pushConstants {
     int p;
+    float sigma;
 };
 
 [vk_push_constant]
 pushConstants pc;
 
-static const float weight[5] = { 0.227027, 0.1945946, 0.1216216, 0.054054, 0.016216 };
-// static const float weight[15] = { 0.199471, 0.176033, 0.120985, 0.0647588, 0.0269955, 0.00876415, 0.00221592, 0.000436341, 6.69151e-05, 7.99187e-06, 7.4336e-07, 5.38488e-08, 3.03794e-09, 1.33478e-10, 4.56736e-12 };
+static const float PI = 3.14159265359;
+static const float l = 1.0 / sqrt(2.0 * PI * pc.sigma * pc.sigma);
+/*
+weights[x] = (1 / sqrt(2 * pi * sigma^2)) * exp(-(x^2) / (2 * sigma^2))
+*/
 
 [shader("compute")]
 [numthreads(16, 16, 1)]
@@ -34,21 +38,31 @@ void compMain(uint3 threadId: SV_DispatchThreadID)
     float2 uv = (float2(texelCoord) + 0.5) / float2(size);
 
     float2 texel_offset = 1.0 / float2(size);
-    float3 result = inputImage.SampleLevel(uv, 0).rgb * weight[0];
+
+    int radius = int(3 * pc.sigma);
+
+    float3 result = inputImage.SampleLevel(uv, 0).rgb * l; // center
+    float weightSum = l;
 
     if (pc.p % 2 == 1) { // horizontal
-        for (int i = 1; i < weight.getCount(); ++i) {
+        for (int i = 1; i < radius; ++i) {
+            float w = exp(-(i * i) / (2 * pc.sigma * pc.sigma));
             float2 offset = float2(texel_offset.x * i, 0.0);
-            result += inputImage.SampleLevel(uv + offset, 0).rgb * weight[i];
-            result += inputImage.SampleLevel(uv - offset, 0).rgb * weight[i];
+            result += inputImage.SampleLevel(uv + offset, 0).rgb * w;
+            result += inputImage.SampleLevel(uv - offset, 0).rgb * w;
+            weightSum += 2 * w;
         }
     } else { // vertical
-        for (int i = 1; i < weight.getCount(); ++i) {
+        for (int i = 1; i < radius; ++i) {
+            float w = exp(-(i * i) / (2 * pc.sigma * pc.sigma));
             float2 offset = float2(0.0, texel_offset.y * i);
-            result += inputImage.SampleLevel(uv + offset, 0).rgb * weight[i];
-            result += inputImage.SampleLevel(uv - offset, 0).rgb * weight[i];
+            result += inputImage.SampleLevel(uv + offset, 0).rgb * w;
+            result += inputImage.SampleLevel(uv - offset, 0).rgb * w;
+            weightSum += 2 * w;
         }
     }
+
+    result /= weightSum;
 
     outputImage[texelCoord] = float4(result, 1.0);
 }

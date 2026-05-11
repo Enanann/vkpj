@@ -11,6 +11,7 @@ RWTexture2D<float4> outputImage;
 
 struct pushConstants {
     int p;
+    float sigma;
     float low_threshold;
     float high_threshold;
 };
@@ -18,24 +19,39 @@ struct pushConstants {
 [vk_push_constant]
 pushConstants pc;
 
-static const float weight[5] = { 0.227027, 0.1945946, 0.1216216, 0.054054, 0.016216 };
+static const float PI = 3.14159265359;
+static const float l = 1.0 / sqrt(2.0 * PI * pc.sigma * pc.sigma);
+/*
+weights[x] = (1 / sqrt(2 * pi * sigma^2)) * exp(-(x^2) / (2 * sigma^2))
+*/
 
 float4 gaussian_blur(float2 uv, float2 texel_offset) {
-    float3 result = inputImage.SampleLevel(uv, 0).rgb * weight[0];
+    int radius = int(3 * pc.sigma);
+
+    float3 result = inputImage.SampleLevel(uv, 0).rgb * l; // center
+    float weightSum = l;
 
     if (pc.p == 0) { // horizontal
-        for (int i = 1; i < weight.getCount(); ++i) {
+        for (int i = 1; i < radius; ++i) {
+            float w = exp(-(i * i) / (2 * pc.sigma * pc.sigma));
+
             float2 offset = float2(texel_offset.x * i, 0.0);
-            result += inputImage.SampleLevel(uv + offset, 0).rgb * weight[i];
-            result += inputImage.SampleLevel(uv - offset, 0).rgb * weight[i];
+            result += inputImage.SampleLevel(uv + offset, 0).rgb * w;
+            result += inputImage.SampleLevel(uv - offset, 0).rgb * w;
+            weightSum += 2 * w;
         }
     } else if (pc.p == 1) { // vertical
-        for (int i = 1; i < weight.getCount(); ++i) {
+        for (int i = 1; i < radius; ++i) {
+            float w = exp(-(i * i) / (2 * pc.sigma * pc.sigma));
+
             float2 offset = float2(0.0, texel_offset.y * i);
-            result += inputImage.SampleLevel(uv + offset, 0).rgb * weight[i];
-            result += inputImage.SampleLevel(uv - offset, 0).rgb * weight[i];
+            result += inputImage.SampleLevel(uv + offset, 0).rgb * w;
+            result += inputImage.SampleLevel(uv - offset, 0).rgb * w;
+            weightSum += 2 * w;
         }
     }
+
+    result /= weightSum;
 
     return float4(result, 1.0);
 }
