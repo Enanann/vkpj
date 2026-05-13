@@ -85,7 +85,7 @@ void ImGuiSystem::newFrame() {
 }
 
 void ImGuiSystem::render() {
-    ImGui::ShowDemoWindow(&mShowDemoWindow);
+    // ImGui::ShowDemoWindow(&mShowDemoWindow);
 
     if(ImGui::Begin("File browser")) {
         // open file dialog when user clicks this button
@@ -95,6 +95,12 @@ void ImGuiSystem::render() {
         ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
     }
     ImGui::End();
+
+    if (ImGui::Begin("Save image")) {
+        if (ImGui::Button("Save image")) {
+            
+        }
+    }
         
     mFilebrowser.Display();
     

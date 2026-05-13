@@ -5,6 +5,7 @@ set(SOURCES
     platform.cpp
     read_binary.cpp 
     image_loader.cpp
+    image_saver.cpp
     vertex.cpp
     imgui_system.cpp
     input_manager.cpp
