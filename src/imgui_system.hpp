@@ -22,6 +22,7 @@ private:
     DescriptorPool mDescriptorPool;
 
     ImGui::FileBrowser mFilebrowser;
+    ImGui::FileBrowser mDirectoryBrowser{ImGuiFileBrowserFlags_EnterNewFilename | ImGuiFileBrowserFlags_CreateNewDir};    
     
     bool mShowDemoWindow{true};
 };

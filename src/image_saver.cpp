@@ -1,8 +1,31 @@
 #include "image_saver.hpp"
 
+#include "image_loader.hpp"
+#include "renderer.hpp"
+
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb/stb_image_write.h>
+#include <vulkan/vulkan.hpp>
 
-void saveImage(const char* path, Image& img) {
-    // int success{stbi_write_jpg(path)};
+#include <iostream>
+
+void ImageSaver::saveImage(std::filesystem::path& path, Renderer* renderer) {
+    ImageLoadResult imageProperty;
+    vk::DeviceSize rowPitch;
+    stbi_uc* data = renderer->getCurrentImageData(imageProperty, rowPitch);
+
+    /*
+    If we can't use blit (which does automatic conversion), we don't need to manually swizzle color components 
+    since both the source and destination use the same RGB format
+    */
+    stbi_flip_vertically_on_write(true);
+    int success{stbi_write_png(path.c_str(), imageProperty.texWidth, imageProperty.texHeight, 4, data, rowPitch)};
+
+    delete [] data;
+
+    if (success) {
+        std::cout << "Image successfully saved to disk at " << path << std::endl;
+    } else {
+        std::cout << "Image not successfully saved to disk" << std::endl;
+    }
 }

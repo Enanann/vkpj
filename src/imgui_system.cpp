@@ -3,6 +3,7 @@
 #include "constant.hpp"
 #include "platform.hpp"
 #include "renderer.hpp"
+#include "image_saver.hpp"
 
 #include "imgui.h"
 #include "backends/imgui_impl_glfw.h"
@@ -94,20 +95,27 @@ void ImGuiSystem::render() {
 
         ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
     }
-    ImGui::End();
-
-    if (ImGui::Begin("Save image")) {
-        if (ImGui::Button("Save image")) {
-            
-        }
-    }
-        
+    ImGui::End();    
     mFilebrowser.Display();
     
     if(mFilebrowser.HasSelected()) {
         std::cout << "Selected filename" << mFilebrowser.GetSelected().string() << std::endl;
         mRenderer->changeImage(mFilebrowser.GetSelected());
         mFilebrowser.ClearSelected();
+    }
+
+    if (ImGui::Begin("Save image")) {
+        if (ImGui::Button("Save image")) {
+            mDirectoryBrowser.Open();
+        }
+    }
+    ImGui::End();
+    mDirectoryBrowser.Display();
+
+    if (mDirectoryBrowser.HasSelected()) {
+        auto path{mDirectoryBrowser.GetSelected()};
+        ImageSaver::saveImage(path, mRenderer);
+        mDirectoryBrowser.ClearSelected();
     }
 
     if (ImGui::Begin("Effects")) {

@@ -1,6 +1,9 @@
 #pragma once
 
-#include "image.hpp"
-// https://github.com/SaschaWillems/Vulkan/blob/master/examples/screenshot/screenshot.cpp
+#include <filesystem>
 
-void saveImage(const char* path, Image& img);
+class Renderer;
+
+namespace ImageSaver {
+    void saveImage(std::filesystem::path& path, Renderer* renderer);
+};
