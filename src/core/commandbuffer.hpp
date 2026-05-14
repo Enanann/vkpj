@@ -80,6 +80,15 @@ public:
     SingleTimeCommandBuffer(const VulkanDevice&, const CommandPool&);
     void executeAndWait();
     const vk::raii::CommandBuffer& getVkHandle() const;
+    void transition_image_layout(
+        vk::Image img, 
+        vk::PipelineStageFlags2 srcStageMask, 
+        vk::AccessFlags2 srcAccessMask,
+        vk::PipelineStageFlags2 dstStageMask, 
+        vk::AccessFlags2 dstAccessMask,
+        vk::ImageLayout oldLayout,
+        vk::ImageLayout newLayout
+    );
     // ~SingleTimeCommandBuffer();
 private:
     const VulkanDevice& mVulkanDevice;
