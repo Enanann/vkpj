@@ -13,6 +13,7 @@
 #include "constant.hpp"
 
 #include <GLFW/glfw3.h>
+#include <iostream>
 #include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_raii.hpp>
 #include <glm/glm.hpp>
@@ -240,6 +241,7 @@ void Renderer::draw() {
     mUniformBuffers[mCurrentFrame]->update(ubo);
 
     Image* currentImage = &mImage.value();
+    mCurrentImage = currentImage;
     Image* currentWrite{nullptr};
     DescriptorSet* currentSetToBind{nullptr};
     int totalActiveEffects{0};
@@ -283,6 +285,7 @@ void Renderer::draw() {
                     frame.computeCommandBuffer.record(imageIndex, *currentWrite, mEffects[i]->getPipeline(), *currentSetToBind);
         
                     currentImage = currentWrite;
+                    mCurrentImage = currentImage;
                     activeEffectIndex++;
                 }
             }
@@ -524,6 +527,184 @@ void Renderer::changeImage(const std::filesystem::path& path) {
     }
     _calculateScaling();
     mVulkanDevice.getVkHandle().waitIdle();
+}
+
+/*
+return the raw data (stbi_uc*) of the current image, and make a copy of that image property (width, height) + rowPitch (for stbi_write_png)
+Note: Image must be created with VK_IMAGE_USAGE_TRANSFER_SRC_BIT flag
+*/
+stbi_uc* Renderer::getCurrentImageData(ImageLoadResult& imageProperty, vk::DeviceSize& rowPitch) {
+    bool supportBlit{true};
+    // auto extent{mSwapchain.getExtent()};
+    auto imageStat = mImage->getImageLoader().getResult();
+    imageProperty = imageStat;
+
+    // Check blit support for src and dst
+    // Blitting from optimal images
+    vk::FormatProperties2 formatProps{mVulkanDevice.getPhysicalDeviceHandle().getFormatProperties2(vk::Format::eR8G8B8A8Srgb)};
+    if (!(formatProps.formatProperties.optimalTilingFeatures & vk::FormatFeatureFlagBits::eBlitSrc)) {
+        std::cerr << "Device does not support blitting from optimal tiled image, using copy instead of blit" << std::endl;
+        supportBlit = false;
+    }
+
+    // Blitting to linear images
+    if (!(formatProps.formatProperties.linearTilingFeatures & vk::FormatFeatureFlagBits::eBlitDst)) {
+        std::cerr << "Device does not support blitting to linear tiled image, using copy instead of blit" << std::endl;
+        supportBlit = false;
+    }
+
+    // Latest rendered image (Src)
+    // vk::Image srcImage{mSwapchain.getImages()[mCurrentFrame]};
+    vk::Image srcImage{mCurrentImage->getImage()};
+
+    // Linear tiled destination images to copy to and to read the memory from
+    vk::ImageCreateInfo imageCreateInfo {
+        .imageType     = vk::ImageType::e2D,
+        // Note that vkCmdBlitImage (if supported) will also do format conversions if the swapchain color format would differ
+        .format        = vk::Format::eR8G8B8A8Srgb,
+        .extent        = {static_cast<uint32_t>(imageStat.texWidth), static_cast<uint32_t>(imageStat.texHeight), 1},
+        .mipLevels     = 1,
+        .arrayLayers   = 1,
+        .samples       = vk::SampleCountFlagBits::e1,
+        .tiling        = vk::ImageTiling::eLinear,
+        .usage         = vk::ImageUsageFlagBits::eTransferDst,
+        // .sharingMode
+        .initialLayout = vk::ImageLayout::eUndefined
+    };
+
+    // Create the image
+    vk::raii::Image dstImage{mVulkanDevice.getVkHandle(), imageCreateInfo};
+    // Create memory for the image
+    vk::MemoryRequirements memReq{dstImage.getMemoryRequirements()};
+    // Memory needs to be host visible to copy from
+    vk::MemoryAllocateInfo allocInfo{
+        .allocationSize = memReq.size,
+        .memoryTypeIndex = Buffer::findMemoryType(mVulkanDevice.getPhysicalDeviceHandle(), memReq.memoryTypeBits, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
+    };
+    vk::raii::DeviceMemory dstImageMemory{vk::raii::DeviceMemory(mVulkanDevice.getVkHandle(), allocInfo)};
+    dstImage.bindMemory(dstImageMemory, 0);
+
+    // Create the command buffer
+    SingleTimeCommandBuffer copyCommandBuffer{mVulkanDevice, mCommandPool};
+    
+    // transition destination image to transfer destination layout
+    copyCommandBuffer.transition_image_layout(
+        *dstImage, 
+        vk::PipelineStageFlagBits2::eTransfer, 
+        {}, // don't need an access mask (don't care)
+        vk::PipelineStageFlagBits2::eTransfer, 
+        vk::AccessFlagBits2::eTransferWrite, 
+        vk::ImageLayout::eUndefined, 
+        vk::ImageLayout::eTransferDstOptimal
+    );
+
+    // transition current image from shader read only to transfersrc
+    copyCommandBuffer.transition_image_layout(
+        srcImage, 
+        vk::PipelineStageFlagBits2::eFragmentShader, 
+        vk::AccessFlagBits2::eShaderStorageWrite, 
+        vk::PipelineStageFlagBits2::eTransfer, 
+        vk::AccessFlagBits2::eTransferRead, 
+        vk::ImageLayout::eShaderReadOnlyOptimal, 
+        vk::ImageLayout::eTransferSrcOptimal
+    );
+
+    // If source and destination support blit we'll blit as this also does automatic format conversion (e.g. from BGR to RGB)
+    if (supportBlit) {
+        // Define the region to blit (we will blit the whole image)
+        vk::Offset3D blitSize{
+            .x = static_cast<int32_t>(imageStat.texWidth),
+            .y = static_cast<int32_t>(imageStat.texHeight),
+            .z = 1
+        };
+        vk::ImageBlit2 imageBlitRegion{
+            .srcSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
+            .srcOffsets     = {{vk::Offset3D{}, blitSize}},
+            .dstSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
+            .dstOffsets     = {{vk::Offset3D{}, blitSize}}
+        };
+
+        vk::BlitImageInfo2 blitInfo{
+            .srcImage       = srcImage,
+            .srcImageLayout = vk::ImageLayout::eTransferSrcOptimal,
+            .dstImage       = dstImage,
+            .dstImageLayout = vk::ImageLayout::eTransferDstOptimal,
+            .regionCount    = 1,
+            .pRegions       = &imageBlitRegion
+        };
+
+        // Blit command
+        copyCommandBuffer.getVkHandle().blitImage2(blitInfo);
+    } else {
+        // Image copy (Requires us to manually flip components)
+        vk::ImageCopy2 imageCopyRegion{
+            .srcSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
+            .dstSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
+            .extent = {static_cast<uint32_t>(imageStat.texWidth), static_cast<uint32_t>(imageStat.texHeight), 1}
+        };
+
+        vk::CopyImageInfo2 copyImageInfo{
+            .srcImage       = srcImage,
+            .srcImageLayout = vk::ImageLayout::eTransferSrcOptimal,
+            .dstImage       = dstImage,
+            .dstImageLayout = vk::ImageLayout::eTransferDstOptimal,
+            .regionCount    = 1,
+            .pRegions       = &imageCopyRegion
+        };
+
+        // Copy command
+        copyCommandBuffer.getVkHandle().copyImage2(copyImageInfo);
+    }
+
+    // Transition destination image to general layout, which is the required layout for mapping the image memory later on
+    copyCommandBuffer.transition_image_layout(
+        dstImage, 
+        vk::PipelineStageFlagBits2::eTransfer, 
+        vk::AccessFlagBits2::eTransferWrite, 
+        vk::PipelineStageFlagBits2::eTransfer, 
+        vk::AccessFlagBits2::eMemoryRead, 
+        vk::ImageLayout::eTransferDstOptimal, 
+        vk::ImageLayout::eGeneral
+    );
+
+    // Transition back the current image after the blit is done
+    copyCommandBuffer.transition_image_layout(
+        srcImage, 
+        vk::PipelineStageFlagBits2::eTransfer, 
+        vk::AccessFlagBits2::eTransferRead, 
+        vk::PipelineStageFlagBits2::eFragmentShader, 
+        vk::AccessFlagBits2::eShaderSampledRead, 
+        vk::ImageLayout::eTransferSrcOptimal, 
+        vk::ImageLayout::eShaderReadOnlyOptimal
+    );
+
+    copyCommandBuffer.executeAndWait();
+
+    // Get layout of the image (including row pitch)
+    vk::ImageSubresource2 subResource{
+        .imageSubresource = {
+                .aspectMask = vk::ImageAspectFlagBits::eColor,
+                .mipLevel   = 0,
+                .arrayLayer = 0
+            }
+    };
+    vk::DeviceImageSubresourceInfo subResourceInfo{
+        .pCreateInfo  = &imageCreateInfo,
+        .pSubresource = &subResource
+    };
+    vk::SubresourceLayout2 subResourceLayout{mVulkanDevice.getVkHandle().getImageSubresourceLayout(subResourceInfo)};
+    rowPitch = subResourceLayout.subresourceLayout.rowPitch;
+    
+    auto* data{static_cast<stbi_uc*>(dstImageMemory.mapMemory(0, vk::WholeSize))};
+    data += subResourceLayout.subresourceLayout.offset;
+    
+    size_t imageSize{rowPitch * imageStat.texHeight}; // rowPitch is the number of bytes between the start of an image row and the next row
+    stbi_uc* cpyData = new stbi_uc[imageSize];
+    memcpy(cpyData, data, imageSize);
+    
+    dstImageMemory.unmapMemory();
+
+    return cpyData;
 }
 
 void Renderer::addEffect(const char* name) {

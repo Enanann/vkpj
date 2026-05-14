@@ -6,6 +6,7 @@
 #include "descriptor_set.hpp"
 #include "effect_registry.hpp"
 #include "image.hpp"
+#include "image_loader.hpp"
 #include "imgui_system.hpp"
 #include "platform.hpp"
 #include "instance.hpp"
@@ -58,6 +59,7 @@ public:
     const Swapchain&    getSwapchain() const;
     const CommandPool&  getCommandPool() const;
     std::vector<std::unique_ptr<Effect>>& getEffects();
+    stbi_uc* getCurrentImageData(ImageLoadResult& imageProperty, vk::DeviceSize& rowPitch);
 
     void addEffect(const char*);
 
@@ -88,6 +90,8 @@ private:
     std::optional<Image>       mImage;
     std::vector<FrameData>     mFrameDatas;
     uint32_t                   mCurrentFrame{0};
+
+    Image* mCurrentImage;
 
     glm::vec2 mScale{1.0f, 1.0f};
     glm::vec2 mPan{0.0f, 0.0f};
