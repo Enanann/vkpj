@@ -83,7 +83,7 @@ Image::Image(const VulkanDevice& device, const CommandPool& commandPool, const C
         .arrayLayers   = 1,
         .samples       = vk::SampleCountFlagBits::e1,
         .tiling        = vk::ImageTiling::eOptimal,
-        .usage         = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage,
+        .usage         = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc,
         .sharingMode   = vk::SharingMode::eExclusive,
         .initialLayout = vk::ImageLayout::eUndefined
     };
