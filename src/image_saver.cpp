@@ -19,7 +19,8 @@ void ImageSaver::saveImage(std::filesystem::path& path, Renderer* renderer) {
     since both the source and destination use the same RGB format
     */
     stbi_flip_vertically_on_write(true);
-    int success{stbi_write_png(path.c_str(), imageProperty.texWidth, imageProperty.texHeight, 4, data, rowPitch)};
+    // filesystem::path::c_str() returns path::value_type*, which is OS-dependent (const wchar_t* on Windows vs const char* on Linux)
+    int success{stbi_write_png(path.string().c_str(), imageProperty.texWidth, imageProperty.texHeight, 4, data, rowPitch)};
 
     delete [] data;
 
