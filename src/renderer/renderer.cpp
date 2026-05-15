@@ -11,6 +11,7 @@
 #include "image_loader.hpp"
 #include "vulkan/vulkan.hpp"
 #include "constant.hpp"
+#include "image_saver.hpp"
 
 #include <GLFW/glfw3.h>
 #include <iostream>
@@ -50,6 +51,8 @@ Renderer::Renderer(Window& window)
     , mImGuiSystem(this)
     // , mCommandBuffer{mVulkanDevice, mSwapchain, mCommandPool, mGraphicsPipeline}
     {
+    ImageSaver::initialize();
+
     BufferConfig vertexConfig{
         .usage         = vk::BufferUsageFlagBits::eVertexBuffer,
         .memProperties = vk::MemoryPropertyFlagBits::eDeviceLocal
@@ -533,11 +536,12 @@ void Renderer::changeImage(const std::filesystem::path& path) {
 return the raw data (stbi_uc*) of the current image, and make a copy of that image property (width, height) + rowPitch (for stbi_write_png)
 Note: Image must be created with VK_IMAGE_USAGE_TRANSFER_SRC_BIT flag
 */
-stbi_uc* Renderer::getCurrentImageData(ImageLoadResult& imageProperty, vk::DeviceSize& rowPitch) {
+std::vector<stbi_uc> Renderer::getCurrentImageData(int& width, int& height, vk::DeviceSize& rowPitch) {
     bool supportBlit{true};
     // auto extent{mSwapchain.getExtent()};
     auto imageStat = mImage->getImageLoader().getResult();
-    imageProperty = imageStat;
+    width = imageStat.texWidth;
+    height = imageStat.texHeight;
 
     // Check blit support for src and dst
     // Blitting from optimal images
@@ -699,8 +703,8 @@ stbi_uc* Renderer::getCurrentImageData(ImageLoadResult& imageProperty, vk::Devic
     data += subResourceLayout.subresourceLayout.offset;
     
     size_t imageSize{rowPitch * imageStat.texHeight}; // rowPitch is the number of bytes between the start of an image row and the next row
-    stbi_uc* cpyData = new stbi_uc[imageSize];
-    memcpy(cpyData, data, imageSize);
+    std::vector<stbi_uc> cpyData(imageSize);
+    memcpy(cpyData.data(), data, imageSize);
     
     dstImageMemory.unmapMemory();
 

@@ -59,7 +59,7 @@ public:
     const Swapchain&    getSwapchain() const;
     const CommandPool&  getCommandPool() const;
     std::vector<std::unique_ptr<Effect>>& getEffects();
-    stbi_uc* getCurrentImageData(ImageLoadResult& imageProperty, vk::DeviceSize& rowPitch);
+    std::vector<stbi_uc> getCurrentImageData(int& width, int& height, vk::DeviceSize& rowPitch);
 
     void addEffect(const char*);
 
