@@ -15,7 +15,7 @@ void ImageSaver::initialize() {
     stbi_flip_vertically_on_write(true);
 }
 
-void ImageSaver::saveImage(std::filesystem::path& path, Renderer* renderer) {
+std::shared_ptr<SaveJob> ImageSaver::saveImage(std::filesystem::path& path, Renderer* renderer) {
     int width;
     int height;
     vk::DeviceSize rowPitch;
@@ -25,7 +25,8 @@ void ImageSaver::saveImage(std::filesystem::path& path, Renderer* renderer) {
     If we can't use blit (which does automatic conversion), we don't need to manually swizzle color components 
     since both the source and destination use the same RGB format
     */
-   std::thread worker([path = std::move(path), width, height, data = std::move(imageData), rowPitch]() {
+   auto isFinished = std::make_shared<SaveJob>();
+   std::thread worker([isFinished, path = std::move(path), width, height, data = std::move(imageData), rowPitch]() {
        // filesystem::path::c_str() returns path::value_type*, which is OS-dependent (const wchar_t* on Windows vs const char* on Linux)
        int success{stbi_write_png(path.string().c_str(), width, height, 4, data.data(), rowPitch)};
     
@@ -34,6 +35,9 @@ void ImageSaver::saveImage(std::filesystem::path& path, Renderer* renderer) {
        } else {
            std::cout << "Image not successfully saved to disk" << std::endl;
        }
+       isFinished->finished = true;
    });
    worker.detach();
+
+   return isFinished;
 }

@@ -105,16 +105,18 @@ void ImGuiSystem::render() {
     }
 
     if (ImGui::Begin("Save image")) {
+        ImGui::BeginDisabled(mSaveJob && !mSaveJob->finished);
         if (ImGui::Button("Save image")) {
             mDirectoryBrowser.Open();
         }
+        ImGui::EndDisabled();
     }
     ImGui::End();
     mDirectoryBrowser.Display();
 
     if (mDirectoryBrowser.HasSelected()) {
         auto path{mDirectoryBrowser.GetSelected()};
-        ImageSaver::saveImage(path, mRenderer);
+        mSaveJob = ImageSaver::saveImage(path, mRenderer);
         mDirectoryBrowser.ClearSelected();
     }
 

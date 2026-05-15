@@ -1,10 +1,16 @@
 #pragma once
 
 #include <filesystem>
+#include <atomic> // thread safe variable
+#include <memory>
 
 class Renderer;
 
+struct SaveJob {
+    std::atomic<bool> finished{false};
+};
+
 namespace ImageSaver {
     void initialize();
-    void saveImage(std::filesystem::path& path, Renderer* renderer);
+    std::shared_ptr<SaveJob> saveImage(std::filesystem::path& path, Renderer* renderer);
 };
