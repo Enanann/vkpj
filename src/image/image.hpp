@@ -3,6 +3,7 @@
 #include "commandbuffer.hpp"
 #include "image_loader.hpp"
 #include "sampler.hpp"
+#include "vulkan/vulkan.hpp"
 
 #include <vulkan/vulkan_raii.hpp>
 
@@ -15,7 +16,7 @@ class Sampler;
 struct ImageConfig {
     const ImageLoader       image;
     vk::Format              format = vk::Format::eR8G8B8A8Srgb;
-    vk::ImageUsageFlags     usage  = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst;
+    vk::ImageUsageFlags     usage  = vk::ImageUsageFlagBits::eSampled | vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc;
     vk::ImageTiling         tiling = vk::ImageTiling::eOptimal;
     vk::MemoryPropertyFlags properties = vk::MemoryPropertyFlagBits::eDeviceLocal;
     vk::ImageAspectFlags    aspect = vk::ImageAspectFlagBits::eColor;

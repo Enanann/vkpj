@@ -3,6 +3,7 @@
 #include "descriptor_pool.hpp"
 #include "imgui.h"
 #include "imfilebrowser.h"
+#include "image_saver.hpp"
 
 class Renderer;
 class DescriptorPool;
@@ -22,6 +23,9 @@ private:
     DescriptorPool mDescriptorPool;
 
     ImGui::FileBrowser mFilebrowser;
+    ImGui::FileBrowser mDirectoryBrowser{ImGuiFileBrowserFlags_EnterNewFilename | ImGuiFileBrowserFlags_CreateNewDir};   
+    
+    std::shared_ptr<SaveJob> mSaveJob;
     
     bool mShowDemoWindow{true};
 };

@@ -3,6 +3,7 @@
 #include "constant.hpp"
 #include "platform.hpp"
 #include "renderer.hpp"
+#include "image_saver.hpp"
 
 #include "imgui.h"
 #include "backends/imgui_impl_glfw.h"
@@ -85,7 +86,7 @@ void ImGuiSystem::newFrame() {
 }
 
 void ImGuiSystem::render() {
-    ImGui::ShowDemoWindow(&mShowDemoWindow);
+    // ImGui::ShowDemoWindow(&mShowDemoWindow);
 
     if(ImGui::Begin("File browser")) {
         // open file dialog when user clicks this button
@@ -94,14 +95,29 @@ void ImGuiSystem::render() {
 
         ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
     }
-    ImGui::End();
-        
+    ImGui::End();    
     mFilebrowser.Display();
     
     if(mFilebrowser.HasSelected()) {
         std::cout << "Selected filename" << mFilebrowser.GetSelected().string() << std::endl;
         mRenderer->changeImage(mFilebrowser.GetSelected());
         mFilebrowser.ClearSelected();
+    }
+
+    if (ImGui::Begin("Save image")) {
+        ImGui::BeginDisabled(mSaveJob && !mSaveJob->finished);
+        if (ImGui::Button("Save image")) {
+            mDirectoryBrowser.Open();
+        }
+        ImGui::EndDisabled();
+    }
+    ImGui::End();
+    mDirectoryBrowser.Display();
+
+    if (mDirectoryBrowser.HasSelected()) {
+        auto path{mDirectoryBrowser.GetSelected()};
+        mSaveJob = ImageSaver::saveImage(path, mRenderer);
+        mDirectoryBrowser.ClearSelected();
     }
 
     if (ImGui::Begin("Effects")) {

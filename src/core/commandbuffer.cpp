@@ -268,6 +268,31 @@ const vk::raii::CommandBuffer& SingleTimeCommandBuffer::getVkHandle() const {
     return mCommandBuffer;
 }
 
+void SingleTimeCommandBuffer::transition_image_layout(
+    vk::Image img, 
+    vk::PipelineStageFlags2 srcStageMask, 
+    vk::AccessFlags2 srcAccessMask,
+    vk::PipelineStageFlags2 dstStageMask, 
+    vk::AccessFlags2 dstAccessMask,
+    vk::ImageLayout oldLayout,
+    vk::ImageLayout newLayout
+) 
+{
+    vk::ImageMemoryBarrier2 barrier1{
+        .srcStageMask  = srcStageMask,
+        .srcAccessMask = srcAccessMask,
+        .dstStageMask  = dstStageMask,
+        .dstAccessMask = dstAccessMask,
+        .oldLayout     = oldLayout, 
+        .newLayout     = newLayout, 
+        .image         = img,
+        .subresourceRange = { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 }
+    };
+
+    vk::DependencyInfo dependencyInfo1{ .imageMemoryBarrierCount = 1, .pImageMemoryBarriers = &barrier1 };
+    mCommandBuffer.pipelineBarrier2(dependencyInfo1);
+}
+
 // void SingleTimeCommandBuffer::executeAndWait() {
 //     mCommandBuffer.end();
 
