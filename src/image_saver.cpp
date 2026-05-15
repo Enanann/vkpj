@@ -8,25 +8,32 @@
 #include <vulkan/vulkan.hpp>
 
 #include <iostream>
+#include <thread>
+#include <vector>
+
+void ImageSaver::initialize() {
+    stbi_flip_vertically_on_write(true);
+}
 
 void ImageSaver::saveImage(std::filesystem::path& path, Renderer* renderer) {
-    ImageLoadResult imageProperty;
+    int width;
+    int height;
     vk::DeviceSize rowPitch;
-    stbi_uc* data = renderer->getCurrentImageData(imageProperty, rowPitch);
+    auto imageData = renderer->getCurrentImageData(width, height, rowPitch);
 
     /*
     If we can't use blit (which does automatic conversion), we don't need to manually swizzle color components 
     since both the source and destination use the same RGB format
     */
-    stbi_flip_vertically_on_write(true);
-    // filesystem::path::c_str() returns path::value_type*, which is OS-dependent (const wchar_t* on Windows vs const char* on Linux)
-    int success{stbi_write_png(path.string().c_str(), imageProperty.texWidth, imageProperty.texHeight, 4, data, rowPitch)};
-
-    delete [] data;
-
-    if (success) {
-        std::cout << "Image successfully saved to disk at " << path << std::endl;
-    } else {
-        std::cout << "Image not successfully saved to disk" << std::endl;
-    }
+   std::thread worker([path = std::move(path), width, height, data = std::move(imageData), rowPitch]() {
+       // filesystem::path::c_str() returns path::value_type*, which is OS-dependent (const wchar_t* on Windows vs const char* on Linux)
+       int success{stbi_write_png(path.string().c_str(), width, height, 4, data.data(), rowPitch)};
+    
+       if (success) {
+           std::cout << "Image successfully saved to disk at " << path << std::endl;
+       } else {
+           std::cout << "Image not successfully saved to disk" << std::endl;
+       }
+   });
+   worker.detach();
 }
