@@ -13,8 +13,10 @@ struct ImageLoadResult {
 
 class ImageLoader {
 public:
+    bool mValid;
+
     ImageLoader();
-    ImageLoader(std::filesystem::path, ImageLoadResult);
+    ImageLoader(std::filesystem::path, ImageLoadResult, bool);
 
     const ImageLoadResult& getResult() const;
 

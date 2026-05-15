@@ -439,6 +439,7 @@ void Renderer::changeImage(const std::filesystem::path& path) {
         .image = ImageLoader::loadImageFromPath(path)
     };
     mVulkanDevice.getVkHandle().waitIdle();
+    if (!imageConfig.image.mValid) return;
 
     mImage.emplace(mVulkanDevice, mCommandPool, imageConfig);
 
