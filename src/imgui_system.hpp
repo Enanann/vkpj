@@ -7,10 +7,17 @@
 
 class Renderer;
 class DescriptorPool;
+class BackgroundRemover;
+
+enum class SaveAction {
+    None,
+    SaveImage,
+    SaveMask
+};
 
 class ImGuiSystem {
 public:
-    ImGuiSystem(Renderer*);
+    ImGuiSystem(Renderer*, BackgroundRemover*);
 
     void newFrame();
     void render();
@@ -20,12 +27,14 @@ public:
     void cleanup();
 private:
     Renderer*      mRenderer;
+    BackgroundRemover* mBackgroundRemover;
     DescriptorPool mDescriptorPool;
 
     ImGui::FileBrowser mFilebrowser;
     ImGui::FileBrowser mDirectoryBrowser{ImGuiFileBrowserFlags_EnterNewFilename | ImGuiFileBrowserFlags_CreateNewDir};   
     
     std::shared_ptr<SaveJob> mSaveJob;
+    SaveAction               mSaveAction;
     
     bool mShowDemoWindow{true};
 };

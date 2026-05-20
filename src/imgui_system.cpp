@@ -8,6 +8,7 @@
 #include "imgui.h"
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_vulkan.h"
+#include "rmbg.hpp"
 #include <cstdint>
 #include <optional>
 #include <stdexcept>
@@ -15,8 +16,9 @@
 #include <iostream>
 #include <utility>
 
-ImGuiSystem::ImGuiSystem(Renderer* renderer) 
+ImGuiSystem::ImGuiSystem(Renderer* renderer, BackgroundRemover* bgRemover) 
     : mRenderer{renderer}
+    , mBackgroundRemover{bgRemover}
     , mDescriptorPool{mRenderer->getDevice(), {.sizes = {{vk::DescriptorType::eSampler, 1000},
 			                                    {vk::DescriptorType::eCombinedImageSampler, 1000},
 			                                    {vk::DescriptorType::eSampledImage, 1000},
@@ -75,6 +77,8 @@ ImGuiSystem::ImGuiSystem(Renderer* renderer)
     if (!res) {
         throw std::runtime_error("Failed to initialize ImGui");
     }
+
+    mSaveAction = SaveAction::None;
 }
 
 void ImGuiSystem::newFrame() {
@@ -107,16 +111,40 @@ void ImGuiSystem::render() {
     if (ImGui::Begin("Save image")) {
         ImGui::BeginDisabled(mSaveJob && !mSaveJob->finished);
         if (ImGui::Button("Save image")) {
+            mSaveAction = SaveAction::SaveImage;
             mDirectoryBrowser.Open();
         }
         ImGui::EndDisabled();
     }
     ImGui::End();
+
+    if (ImGui::Begin("Save image mask")) {
+        ImGui::BeginDisabled(mSaveJob && !mSaveJob->finished);
+        if (ImGui::Button("Save image mask")) {
+            mSaveAction = SaveAction::SaveMask;
+            mDirectoryBrowser.Open();
+        }
+        ImGui::EndDisabled();
+    }
+    ImGui::End();
+
     mDirectoryBrowser.Display();
 
     if (mDirectoryBrowser.HasSelected()) {
         auto path{mDirectoryBrowser.GetSelected()};
-        mSaveJob = ImageSaver::saveImage(path, mRenderer);
+
+        switch (mSaveAction) {
+            case SaveAction::SaveImage:
+                mSaveJob = ImageSaver::saveImage(path, mRenderer);
+                break;
+            case SaveAction::SaveMask:
+                mSaveJob = ImageSaver::saveMask(path, mRenderer, mBackgroundRemover);
+                break;
+            default:
+                break;
+        }
+
+        mSaveAction = SaveAction::None;
         mDirectoryBrowser.ClearSelected();
     }
 
