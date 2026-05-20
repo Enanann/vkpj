@@ -9,6 +9,7 @@
 #include "glm/fwd.hpp"
 #include "image.hpp"
 #include "image_loader.hpp"
+#include "rmbg.hpp"
 #include "vulkan/vulkan.hpp"
 #include "constant.hpp"
 #include "image_saver.hpp"
@@ -30,8 +31,9 @@
 // #include <chrono>
 
 
-Renderer::Renderer(Window& window) 
+Renderer::Renderer(Window& window, BackgroundRemover& bgRemover) 
     : mWindow{window}
+    , mBackgroundRemover{bgRemover}
     , mInstance{}
     , mGLFWSurface{mInstance, mWindow}
     , mVulkanDevice{mInstance, mGLFWSurface}
@@ -48,7 +50,7 @@ Renderer::Renderer(Window& window)
                                                 {vk::DescriptorType::eCombinedImageSampler, MAX_FRAMES_IN_FLIGHT * 4},
                                                 {vk::DescriptorType::eStorageImage, MAX_FRAMES_IN_FLIGHT * 3}}, .maxSets = MAX_FRAMES_IN_FLIGHT * 4})
     // , mImage(mVulkanDevice, mCommandPool, {ImageLoader::loadImageFromPath("textures/Ichika6.jpeg")})
-    , mImGuiSystem(this)
+    , mImGuiSystem(this, &mBackgroundRemover)
     // , mCommandBuffer{mVulkanDevice, mSwapchain, mCommandPool, mGraphicsPipeline}
     {
     ImageSaver::initialize();

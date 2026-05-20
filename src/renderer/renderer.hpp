@@ -12,6 +12,7 @@
 #include "instance.hpp"
 #include "glfw_surface.hpp"
 #include "device.hpp"
+#include "rmbg.hpp"
 #include "swapchain.hpp"
 #include "graphics_pipeline.hpp"
 #include "commandpool.hpp"
@@ -44,7 +45,7 @@ struct FrameData {
 
 class Renderer {
 public:
-    Renderer(Window&);
+    Renderer(Window&, BackgroundRemover&);
 
     void drawImGui();
     void draw();
@@ -68,6 +69,7 @@ private:
     void _calculateScaling();
 
     Window&               mWindow;
+    BackgroundRemover&    mBackgroundRemover;
     Instance              mInstance;
     GLFWSurface           mGLFWSurface;
     VulkanDevice          mVulkanDevice;
