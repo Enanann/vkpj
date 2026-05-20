@@ -9,6 +9,7 @@ set(SOURCES
     vertex.cpp
     imgui_system.cpp
     input_manager.cpp
+    rmbg.cpp
     
     core/device.cpp 
     core/glfw_surface.cpp 
@@ -47,11 +48,11 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ${IMGUI_DIR}
 )
 
-target_link_libraries(${PROJECT_NAME}
+target_link_libraries(${CMAKE_PROJECT_NAME}
     PRIVATE 
     Vulkan::cppm 
     glfw 
-    
+    ncnn
 )
 
 # C++ standard
