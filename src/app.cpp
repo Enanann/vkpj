@@ -46,5 +46,5 @@ void Application::mainLoop() {
 
 void Application::cleanup() {
     // glfwTerminate();
-    ncnn::destroy_gpu_instance();
+    // ncnn::destroy_gpu_instance();
 }
