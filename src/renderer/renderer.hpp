@@ -63,7 +63,9 @@ public:
     std::vector<stbi_uc> getCurrentImageData(int& width, int& height, vk::DeviceSize& rowPitch);
 
     void addEffect(const char*);
-
+    
+    void _getMask();
+    
     void cleanup();
 private:
     void _calculateScaling();
@@ -94,6 +96,7 @@ private:
     uint32_t                   mCurrentFrame{0};
 
     Image* mCurrentImage;
+    std::optional<Image> mMask;
 
     glm::vec2 mScale{1.0f, 1.0f};
     glm::vec2 mPan{0.0f, 0.0f};

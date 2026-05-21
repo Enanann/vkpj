@@ -79,5 +79,6 @@ add_slang_shader_target(
     SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/shaders/affine_transformation.slang"
     SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/shaders/gaussian_blur.slang"
     SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/shaders/canny.slang"
+    SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/shaders/mask.slang"
 )
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_shaders)

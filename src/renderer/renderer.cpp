@@ -42,12 +42,13 @@ Renderer::Renderer(Window& window, BackgroundRemover& bgRemover)
     , mDescriptorSetLayout(mVulkanDevice, {.bindings = {{0, vk::DescriptorType::eUniformBuffer, vk::ShaderStageFlagBits::eVertex}, 
                                                         {1, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eFragment}}})
     , mComputeDescriptorSetLayout(mVulkanDevice, {.bindings = {{0, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eCompute}, 
-                                                               {1, vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eCompute}}})    
+                                                               {1, vk::DescriptorType::eStorageImage, vk::ShaderStageFlagBits::eCompute},
+                                                               {2, vk::DescriptorType::eCombinedImageSampler, vk::ShaderStageFlagBits::eCompute}}})    
     // , mEffectRegistry{}
     , mGraphicsPipeline{mVulkanDevice, mShader, mSwapchain, mDescriptorSetLayout}
     , mCommandPool{mVulkanDevice}
     , mDescriptorPool(mVulkanDevice, {.sizes = {{vk::DescriptorType::eUniformBuffer, MAX_FRAMES_IN_FLIGHT}, 
-                                                {vk::DescriptorType::eCombinedImageSampler, MAX_FRAMES_IN_FLIGHT * 4},
+                                                {vk::DescriptorType::eCombinedImageSampler, MAX_FRAMES_IN_FLIGHT * 7},
                                                 {vk::DescriptorType::eStorageImage, MAX_FRAMES_IN_FLIGHT * 3}}, .maxSets = MAX_FRAMES_IN_FLIGHT * 4})
     // , mImage(mVulkanDevice, mCommandPool, {ImageLoader::loadImageFromPath("textures/Ichika6.jpeg")})
     , mImGuiSystem(this, &mBackgroundRemover)
@@ -96,6 +97,131 @@ void Renderer::_calculateScaling() {
 
     mScale = glm::vec2(scaleX, scaleY);
     // std::cout << mScale.x << ' ' << mScale.y << '\n';
+}
+
+void Renderer::_getMask() {
+    int width;
+    int height;
+    vk::DeviceSize rowPitch;
+    
+    auto imageData = getCurrentImageData(width, height, rowPitch);
+    
+    // // Pack the Vulkan buffer for the model
+    // std::vector<unsigned char> tightlyPackedRgba(width * height * 4);
+    // for (int y = 0; y < height; ++y) {
+    //     memcpy(
+    //         tightlyPackedRgba.data() + (y * width * 4), 
+    //         imageData.data() + (y * rowPitch), 
+    //         width * 4
+    //     );
+    // }
+
+    // auto mask = mBackgroundRemover.generateMask(tightlyPackedRgba.data(), width, height);
+
+    // std::vector<unsigned char> finalMaskData(width * height * 4);
+
+    // // Calculate the alpha
+    // for (int y = 0; y < height; ++y) {
+    //     for (int x = 0; x < width; ++x) {
+    //         int maskIndex = (y * width) + x;
+    //         int tightlyPackedIndex = (y * width * 4) + (x * 4);
+
+    //         float alpha_float = mask[maskIndex]; 
+    //         unsigned char alpha_byte = static_cast<unsigned char>(alpha_float * 255.0f);
+
+    //         finalMaskData[tightlyPackedIndex + 0] = alpha_byte; // R
+    //         finalMaskData[tightlyPackedIndex + 1] = alpha_byte; // G
+    //         finalMaskData[tightlyPackedIndex + 2] = alpha_byte; // B
+    //         finalMaskData[tightlyPackedIndex + 3] = alpha_byte; // A
+    //     }
+    // }
+
+    // Pack the Vulkan buffer for the model and flip it 180 degrees since the model works better when the image is flipped for some reason
+    std::vector<unsigned char> tightlyPackedRgba(width * height * 4);
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            // Read from normal coordinates (with rowPitch padding)
+            int srcPixelOffset = (y * rowPitch) + (x * 4);
+            
+            // Write to flipped coordinates (Bottom-to-Top, Right-to-Left)
+            int flippedY = (height - 1) - y;
+            int flippedX = (width - 1) - x;
+            int dstPixelOffset = (flippedY * width * 4) + (flippedX * 4);
+
+            tightlyPackedRgba[dstPixelOffset + 0] = imageData[srcPixelOffset + 0];
+            tightlyPackedRgba[dstPixelOffset + 1] = imageData[srcPixelOffset + 1];
+            tightlyPackedRgba[dstPixelOffset + 2] = imageData[srcPixelOffset + 2];
+            tightlyPackedRgba[dstPixelOffset + 3] = imageData[srcPixelOffset + 3];
+        }
+    }
+
+    auto mask = mBackgroundRemover.generateMask(tightlyPackedRgba.data(), width, height);
+
+    std::vector<unsigned char> finalMaskData(width * height * 4);
+
+    // Calculate the alpha and unflip the mask
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            int flippedY = (height - 1) - y;
+            int flippedX = (width - 1) - x;
+            int maskIndex = (flippedY * width) + flippedX;
+
+            // write to the normal coordinates
+            int normalPackedIndex = (y * width * 4) + (x * 4);
+
+            float alpha_float = mask[maskIndex]; 
+            unsigned char alpha_byte = static_cast<unsigned char>(alpha_float * 255.0f);
+
+            finalMaskData[normalPackedIndex + 0] = alpha_byte; // R
+            finalMaskData[normalPackedIndex + 1] = alpha_byte; // G
+            finalMaskData[normalPackedIndex + 2] = alpha_byte; // B
+            finalMaskData[normalPackedIndex + 3] = alpha_byte; // A
+        }
+    }
+
+    ImageLoadResult res {
+        .texWidth    = width,
+        .texHeight   = height,
+        .texChannels = 4,
+        .pixels      = std::move(finalMaskData) 
+    };
+
+    ImageConfig maskConfig{
+        .image = ImageLoader{"", std::move(res), true}
+    };
+    mVulkanDevice.getVkHandle().waitIdle();
+
+    mMask.emplace(mVulkanDevice, mCommandPool, maskConfig);
+    for (size_t i{0}; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+        mFrameDatas[i].computeCommandBuffer.setDispatchDimension(width, height);
+        
+        // Descriptor set for first pass
+        mComputeDescriptorSetsInit[i].updateImage({
+            .binding = 2,
+            .type    = vk::DescriptorType::eCombinedImageSampler,
+            .image   = *mMask,
+            .layout  = vk::ImageLayout::eShaderReadOnlyOptimal,
+            .sampler = mMask->getSampler()
+        });
+    
+        // Descriptor set for ping -> pong
+        mComputeDescriptorSetsAtoB[i].updateImage({
+            .binding = 2,
+            .type    = vk::DescriptorType::eCombinedImageSampler,
+            .image   = *mMask,
+            .layout  = vk::ImageLayout::eShaderReadOnlyOptimal,
+            .sampler = mMask->getSampler()
+        });
+    
+        // Descriptor set for pong -> ping
+        mComputeDescriptorSetsBtoA[i].updateImage({
+            .binding = 2,
+            .type    = vk::DescriptorType::eCombinedImageSampler,
+            .image   = *mMask,
+            .layout  = vk::ImageLayout::eShaderReadOnlyOptimal,
+            .sampler = mMask->getSampler()
+        });
+    }
 }
 
 void Renderer::drawImGui() {
@@ -437,6 +563,14 @@ std::vector<std::unique_ptr<Effect>>& Renderer::getEffects() {
 }
 
 void Renderer::changeImage(const std::filesystem::path& path) {
+    ImageConfig maskConfig{
+        .image = ImageLoader::loadImageFromPath("textures/Black.png")
+    };
+    mVulkanDevice.getVkHandle().waitIdle();
+    if (!maskConfig.image.mValid) return;
+
+    mMask.emplace(mVulkanDevice, mCommandPool, maskConfig);
+
     ImageConfig imageConfig{
         .image = ImageLoader::loadImageFromPath(path)
     };
@@ -498,6 +632,13 @@ void Renderer::changeImage(const std::filesystem::path& path) {
             .layout  = vk::ImageLayout::eGeneral,
             .sampler = mFrameDatas[i].ping->getSampler()
         });
+        mComputeDescriptorSetsInit[i].updateImage({
+            .binding = 2,
+            .type    = vk::DescriptorType::eCombinedImageSampler,
+            .image   = *mMask,
+            .layout  = vk::ImageLayout::eShaderReadOnlyOptimal,
+            .sampler = mMask->getSampler()
+        });
 
         // Descriptor set for ping -> pong
         mComputeDescriptorSetsAtoB[i].updateImage({
@@ -514,6 +655,13 @@ void Renderer::changeImage(const std::filesystem::path& path) {
             .layout  = vk::ImageLayout::eGeneral,
             .sampler = mFrameDatas[i].pong->getSampler()
         });
+        mComputeDescriptorSetsAtoB[i].updateImage({
+            .binding = 2,
+            .type    = vk::DescriptorType::eCombinedImageSampler,
+            .image   = *mMask,
+            .layout  = vk::ImageLayout::eShaderReadOnlyOptimal,
+            .sampler = mMask->getSampler()
+        });
 
         // Descriptor set for pong -> ping
         mComputeDescriptorSetsBtoA[i].updateImage({
@@ -529,6 +677,13 @@ void Renderer::changeImage(const std::filesystem::path& path) {
             .image   = *mFrameDatas[i].ping,
             .layout  = vk::ImageLayout::eGeneral,
             .sampler = mFrameDatas[i].ping->getSampler()
+        });
+        mComputeDescriptorSetsBtoA[i].updateImage({
+            .binding = 2,
+            .type    = vk::DescriptorType::eCombinedImageSampler,
+            .image   = *mMask,
+            .layout  = vk::ImageLayout::eShaderReadOnlyOptimal,
+            .sampler = mMask->getSampler()
         });
     }
     _calculateScaling();

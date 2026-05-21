@@ -215,6 +215,7 @@ EffectRegistry::EffectRegistry() {
         .max          = 1.0f,
     });
 
+    EffectCreateInfo mask("Background Remover", "build/src/shaders/mask.spv", {.usePushConstant = false, .pushConstantSize = 1});
 
     mEffectCreateInfos.push_back(grayscale);
     mEffectCreateInfos.push_back(vignette);
@@ -232,6 +233,7 @@ EffectRegistry::EffectRegistry() {
     mEffectCreateInfos.push_back(rotate_zoom);
     mEffectCreateInfos.push_back(gaussian_blur);
     mEffectCreateInfos.push_back(canny);
+    mEffectCreateInfos.push_back(mask);
 }
 
 // const std::vector<Effect>& EffectRegistry::getEffects() const noexcept {

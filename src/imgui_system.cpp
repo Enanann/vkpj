@@ -277,6 +277,10 @@ void ImGuiSystem::render() {
             if (ImGui::Selectable("Canny")) {
                 mRenderer->addEffect("Canny");
             }
+            if (ImGui::Selectable("Background Remover")) {
+                mRenderer->_getMask();
+                mRenderer->addEffect("Background Remover");
+            }
 
             ImGui::EndPopup();
         }
