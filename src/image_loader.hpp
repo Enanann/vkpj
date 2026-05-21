@@ -3,12 +3,13 @@
 #include <stb/stb_image.h>
 
 #include <filesystem>
+#include <vector>
 
 struct ImageLoadResult {
     int texWidth{};
     int texHeight{};
     int texChannels{};
-    stbi_uc* pixels{nullptr};
+    std::vector<stbi_uc> pixels;
 };
 
 class ImageLoader {

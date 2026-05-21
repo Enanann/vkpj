@@ -119,11 +119,11 @@ Image::Image(const VulkanDevice& device, const CommandPool& commandPool, const C
 }
 
 
-Image::~Image() {
-    if (mImageLoader.getResult().pixels) {
-        stbi_image_free(mImageLoader.getResult().pixels);
-    }
-}
+// Image::~Image() {
+//     if (mImageLoader.getResult().pixels) {
+//         stbi_image_free(mImageLoader.getResult().pixels);
+//     }
+// }
 
 const ImageLoader& Image::getImageLoader() const {
     return mImageLoader;

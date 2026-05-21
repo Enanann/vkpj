@@ -53,7 +53,7 @@ public:
         vk::DeviceSize bufferSize{static_cast<vk::DeviceSize>(_res.texWidth * _res.texHeight * 4)};
 
         Buffer stagingBuffer{device, bufferSize, config};
-        stagingBuffer.transfer_data<stbi_uc*>(_res.pixels, bufferSize);
+        stagingBuffer.transfer_data<stbi_uc*>(_res.pixels.data(), bufferSize);
 
         return stagingBuffer;
     }

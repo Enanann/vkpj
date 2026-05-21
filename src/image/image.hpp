@@ -31,7 +31,7 @@ class Image {
 public:
     Image(const VulkanDevice&, const CommandPool&, const ImageConfig&);
     Image(const VulkanDevice&, const CommandPool&, const ComputeImageConfig&);
-    ~Image();
+    ~Image() = default;
 
     Image(const Image&) = delete;
     Image& operator=(const Image&) = delete;
