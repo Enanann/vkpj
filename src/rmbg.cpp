@@ -58,7 +58,7 @@ std::vector<float> BackgroundRemover::generateMask(unsigned char* raw_data, int 
     }
 
 #ifdef DEBUG_MASK
-    stbi_write_png("TRUE_MODNET_MASK.png", width, height, 1, debug_vision.data(), width);
+    stbi_write_png("MASK.png", width, height, 1, debug_vision.data(), width);
 #endif
 
     return mask;
