@@ -109,22 +109,22 @@ void ImGuiSystem::render() {
     }
 
     if (ImGui::Begin("Save image")) {
-        ImGui::BeginDisabled(mSaveJob && !mSaveJob->finished);
+        // ImGui::BeginDisabled(mSaveJob && finished);
         if (ImGui::Button("Save image")) {
             mSaveAction = SaveAction::SaveImage;
             mDirectoryBrowser.Open();
         }
-        ImGui::EndDisabled();
+        // ImGui::EndDisabled();
     }
     ImGui::End();
 
     if (ImGui::Begin("Save image mask")) {
-        ImGui::BeginDisabled(mSaveJob && !mSaveJob->finished);
+        // ImGui::BeginDisabled(mSaveJob && !mSaveJob->finished);
         if (ImGui::Button("Save image mask")) {
             mSaveAction = SaveAction::SaveMask;
             mDirectoryBrowser.Open();
         }
-        ImGui::EndDisabled();
+        // ImGui::EndDisabled();
     }
     ImGui::End();
 
@@ -134,11 +134,11 @@ void ImGuiSystem::render() {
         auto path{mDirectoryBrowser.GetSelected()};
 
         switch (mSaveAction) {
-            case SaveAction::SaveImage:
-                mSaveJob = ImageSaver::saveImage(path, mRenderer);
+            case SaveAction::SaveImage: 
+                mFinished = mRenderer->saveCurrentImage(path);
                 break;
             case SaveAction::SaveMask:
-                mSaveJob = ImageSaver::saveMask(path, mRenderer, mBackgroundRemover);
+                mFinished = mRenderer->saveCurrentImageMask(path);
                 break;
             default:
                 break;
@@ -278,7 +278,7 @@ void ImGuiSystem::render() {
                 mRenderer->addEffect("Canny");
             }
             if (ImGui::Selectable("Background Remover")) {
-                mRenderer->_getMask();
+                mRenderer->_setMask();
                 mRenderer->addEffect("Background Remover");
             }
 

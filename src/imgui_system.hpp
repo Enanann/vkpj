@@ -33,8 +33,9 @@ private:
     ImGui::FileBrowser mFilebrowser;
     ImGui::FileBrowser mDirectoryBrowser{ImGuiFileBrowserFlags_EnterNewFilename | ImGuiFileBrowserFlags_CreateNewDir};   
     
-    std::shared_ptr<SaveJob> mSaveJob;
-    SaveAction               mSaveAction;
+    // std::shared_ptr<SaveJob> mSaveJob;
+    std::future<bool> mFinished;
+    SaveAction        mSaveAction;
     
     bool mShowDemoWindow{true};
 };
