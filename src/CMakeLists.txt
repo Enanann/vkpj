@@ -10,6 +10,7 @@ set(SOURCES
     imgui_system.cpp
     input_manager.cpp
     rmbg.cpp
+    threadpool.cpp
     
     core/device.cpp 
     core/glfw_surface.cpp 
