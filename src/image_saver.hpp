@@ -1,19 +1,21 @@
 #pragma once
 
-#include "rmbg.hpp"
+#include "threadpool.hpp"
+
+#include <vulkan/vulkan.hpp>
 
 #include <filesystem>
-#include <atomic> // thread safe variable
-#include <memory>
 
 class Renderer;
 
-struct SaveJob {
-    std::atomic<bool> finished{false};
-};
+class ImageSaver {
+public:
+    ImageSaver();
 
-namespace ImageSaver {
     void initialize();
-    std::shared_ptr<SaveJob> saveImage(std::filesystem::path& path, Renderer* renderer);
-    std::shared_ptr<SaveJob> saveMask(std::filesystem::path& path, Renderer* renderer, BackgroundRemover* bgRemover);
+
+    std::future<bool> saveImage(const std::filesystem::path& path, std::vector<unsigned char> imageData, int width, int height, vk::DeviceSize rowPitch);
+
+private:
+    ThreadPool mPool;
 };
