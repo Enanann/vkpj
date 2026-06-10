@@ -1,4 +1,5 @@
 #include "renderer.hpp"
+#include "batch/batch_processor.hpp"
 #include "buffer.hpp"
 #include "commandbuffer.hpp"
 #include "commandpool.hpp"
@@ -15,6 +16,7 @@
 #include "image_saver.hpp"
 
 #include <GLFW/glfw3.h>
+#include <future>
 #include <iostream>
 #include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_raii.hpp>
@@ -51,7 +53,7 @@ Renderer::Renderer(Window& window, BackgroundRemover& bgRemover)
                                                 {vk::DescriptorType::eCombinedImageSampler, MAX_FRAMES_IN_FLIGHT * 7},
                                                 {vk::DescriptorType::eStorageImage, MAX_FRAMES_IN_FLIGHT * 3}}, .maxSets = MAX_FRAMES_IN_FLIGHT * 4})
     // , mImage(mVulkanDevice, mCommandPool, {ImageLoader::loadImageFromPath("textures/Ichika6.jpeg")})
-    , mImGuiSystem(this, &mBackgroundRemover)
+    // , mImGuiSystem(this, &mBackgroundRemover)
     // , mCommandBuffer{mVulkanDevice, mSwapchain, mCommandPool, mGraphicsPipeline}
     {
     mImageSaver.initialize();
@@ -150,10 +152,10 @@ void Renderer::_setMask() {
     }
 }
 
-void Renderer::drawImGui() {
-    mImGuiSystem.newFrame();
-    mImGuiSystem.render();
-}
+// void Renderer::drawImGui() {
+//     mImGuiSystem.newFrame();
+//     mImGuiSystem.render();
+// }
 
 #define COMPUTE
 #ifndef COMPUTE
@@ -456,6 +458,60 @@ void Renderer::draw() {
 }
 #endif
 
+void Renderer::runCompute() {
+    Image* currentImage = &mImage.value();
+    auto _w = currentImage->getImageLoader().getResult().texWidth;
+    auto _h = currentImage->getImageLoader().getResult().texHeight;
+    mCurrentImage = currentImage;
+    Image* currentWrite{nullptr};
+    DescriptorSet* currentSetToBind{nullptr};
+    int totalActiveEffects{0};
+    for (const auto& e : mEffects) {
+        if (e->mIsEnabled) {
+            totalActiveEffects++;
+        }
+    }
+    if (totalActiveEffects > 0) {
+        SingleTimeCommandBuffer cmdBuffer{mVulkanDevice, mCommandPool};
+        cmdBuffer.setDispatchDimension(_w, _h);
+        // auto& frame = mFrameDatas[0];
+        
+        int activeEffectIndex{0};
+        for (size_t i{0}; i < mEffects.size(); ++i) {
+            if (!mEffects[i]->mIsEnabled) continue;
+            for (int pass{0}; pass < mEffects[i]->getPasses(); ++pass) {
+                float currentTime = static_cast<float>(fmod(glfwGetTime(), 1000.0));
+                if (mEffects[i]->getName() == "Gaussian Noise" || mEffects[i]->getName() == "Salt and Pepper") {
+                    mEffects[i]->setSeed(currentTime);
+                }
+                
+                if (activeEffectIndex == 0) {
+                    currentSetToBind = &mComputeDescriptorSetsInit[mCurrentFrame];
+                    currentWrite = &mFrameDatas[mCurrentFrame].ping.value();
+                } else if (activeEffectIndex % 2 == 1) {
+                    currentSetToBind = &mComputeDescriptorSetsAtoB[mCurrentFrame];
+                    currentWrite = &mFrameDatas[mCurrentFrame].pong.value();
+                } else {
+                    currentSetToBind = &mComputeDescriptorSetsBtoA[mCurrentFrame];
+                    currentWrite = &mFrameDatas[mCurrentFrame].ping.value();
+                }
+    
+                if (mEffects[i]->usePushConstant()) {
+                    std::vector<uint8_t> pushData{mEffects[i]->getPackedPushConstants(pass)};
+                    cmdBuffer.setPushConstant(mEffects[i]->getPipeline().getLayout(), 0, static_cast<uint32_t>(pushData.size()), pushData.data());
+                }
+    
+                cmdBuffer.record(0, *currentWrite, mEffects[i]->getPipeline(), *currentSetToBind);
+    
+                currentImage = currentWrite;
+                mCurrentImage = currentImage;
+                activeEffectIndex++;
+            }
+        }
+        cmdBuffer.executeAndWait();
+    }
+}
+
 void Renderer::setPan(glm::vec2& v) {
     mPan = glm::vec2(v);
 }
@@ -488,12 +544,12 @@ std::vector<std::unique_ptr<Effect>>& Renderer::getEffects() {
     return mEffects;
 }
 
-void Renderer::changeImage(const std::filesystem::path& path) {
+bool Renderer::changeImage(const std::filesystem::path& path) {
     ImageConfig maskConfig{
         .image = ImageLoader::loadImageFromPath("textures/Black.png")
     };
     mVulkanDevice.getVkHandle().waitIdle();
-    if (!maskConfig.image.mValid) return;
+    if (!maskConfig.image.mValid) return false;
 
     mMask.emplace(mVulkanDevice, mCommandPool, maskConfig);
 
@@ -501,7 +557,7 @@ void Renderer::changeImage(const std::filesystem::path& path) {
         .image = ImageLoader::loadImageFromPath(path)
     };
     mVulkanDevice.getVkHandle().waitIdle();
-    if (!imageConfig.image.mValid) return;
+    if (!imageConfig.image.mValid) return false;
 
     mImage.emplace(mVulkanDevice, mCommandPool, imageConfig);
 
@@ -614,6 +670,7 @@ void Renderer::changeImage(const std::filesystem::path& path) {
     }
     _calculateScaling();
     mVulkanDevice.getVkHandle().waitIdle();
+    return true;
 }
 
 /*
@@ -875,7 +932,7 @@ void Renderer::addEffect(const char* name) {
 
 void Renderer::cleanup() {
     mVulkanDevice.getVkHandle().waitIdle();
-    mImGuiSystem.cleanup();
+    // mImGuiSystem.cleanup();
     mImage.reset();
     for (size_t i{0}; i < MAX_FRAMES_IN_FLIGHT; ++i) {
         mFrameDatas[i].ping.reset();

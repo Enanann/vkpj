@@ -51,10 +51,11 @@ public:
 
     void drawImGui();
     void draw();
+    void runCompute();
     void setPan(glm::vec2&);
     void setZoom(float);
 
-    void changeImage(const std::filesystem::path&);
+    bool changeImage(const std::filesystem::path&);
 
     const Window&       getWindow() const;
     const Instance&     getInstance() const;
@@ -109,7 +110,7 @@ private:
     glm::vec2 mPan{0.0f, 0.0f};
     float     mZoom{45.0f};
 
-    ImGuiSystem mImGuiSystem;
+    // ImGuiSystem mImGuiSystem;
 
     std::vector<vk::raii::Semaphore> mRenderFinishedSemaphores;
 };
