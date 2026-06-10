@@ -16,8 +16,10 @@
 #include "image_saver.hpp"
 
 #include <GLFW/glfw3.h>
+#include <algorithm>
 #include <future>
 #include <iostream>
+#include <iterator>
 #include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_raii.hpp>
 #include <glm/glm.hpp>
@@ -669,6 +671,12 @@ bool Renderer::changeImage(const std::filesystem::path& path) {
         });
     }
     _calculateScaling();
+
+    mCurrentImage = &*mImage;
+    if (hasEffect("Background Remover")) {
+        _setMask();
+    }
+    
     mVulkanDevice.getVkHandle().waitIdle();
     return true;
 }
@@ -929,6 +937,13 @@ std::vector<unsigned char> Renderer::_getMask(int& width, int& height, vk::Devic
 void Renderer::addEffect(const char* name) {
     mEffects.emplace_back(std::make_unique<Effect>(mVulkanDevice, mComputeDescriptorSetLayout, *mEffectRegistry.getByName(name)));
 } 
+
+bool Renderer::hasEffect(const std::string& name) {
+    return std::ranges::find_if(mEffects, [&](const auto& e) {
+        return e->getName() == name;
+    }) != mEffects.end();
+}
+
 
 void Renderer::cleanup() {
     mVulkanDevice.getVkHandle().waitIdle();

@@ -25,6 +25,7 @@
 #include <filesystem>
 #include <memory>
 #include <optional>
+#include <string>
 #include <vector>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
@@ -69,6 +70,7 @@ public:
     std::future<bool> saveCurrentImageMask(const std::filesystem::path& path);
 
     void addEffect(const char*);
+    bool hasEffect(const std::string& name);
     
     void _setMask();
     
