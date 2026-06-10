@@ -3,3 +3,4 @@ build
 .vscode
 imgui.ini
 valgrindlog.txt
+model_testing/
