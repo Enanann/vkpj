@@ -4,3 +4,4 @@ build
 imgui.ini
 valgrindlog.txt
 model_testing/
+models/
