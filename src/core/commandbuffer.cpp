@@ -293,6 +293,49 @@ void SingleTimeCommandBuffer::transition_image_layout(
     mCommandBuffer.pipelineBarrier2(dependencyInfo1);
 }
 
+void SingleTimeCommandBuffer::setPushConstant(const vk::raii::PipelineLayout& layout, uint32_t offset, uint32_t size, const void* data) {
+    vk::PushConstantsInfoKHR pushInfo{
+        .layout = layout,
+        .stageFlags = vk::ShaderStageFlagBits::eCompute,
+        .offset = offset,
+        .size = size,
+        .pValues = data
+    };
+    mCommandBuffer.pushConstants2(pushInfo);
+}
+
+void SingleTimeCommandBuffer::record(uint32_t imageIndex, Image& img, const ComputePipeline& pipeline, DescriptorSet& toBind) {
+    transition_image_layout(
+        img.getImage(), 
+        vk::PipelineStageFlagBits2::eTopOfPipe, 
+        vk::AccessFlagBits2::eNone, 
+        vk::PipelineStageFlagBits2::eComputeShader, 
+        vk::AccessFlagBits2::eShaderStorageWrite, 
+        vk::ImageLayout::eUndefined, 
+        vk::ImageLayout::eGeneral
+    );
+
+    mCommandBuffer.bindPipeline(vk::PipelineBindPoint::eCompute, pipeline.getVkHandle());
+    mCommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipeline.getLayout(), 0, *toBind.getVkHandle(), nullptr);
+
+    mCommandBuffer.dispatch((_width + 15) / 16, (_height + 15) / 16, 1);
+
+    transition_image_layout(
+        img.getImage(), 
+        vk::PipelineStageFlagBits2::eComputeShader, 
+        vk::AccessFlagBits2::eShaderStorageWrite, 
+        vk::PipelineStageFlagBits2::eFragmentShader, 
+        vk::AccessFlagBits2::eShaderSampledRead, 
+        vk::ImageLayout::eGeneral, 
+        vk::ImageLayout::eShaderReadOnlyOptimal
+    );
+}
+
+void SingleTimeCommandBuffer::setDispatchDimension(uint32_t w, uint32_t h/*, uint32_t z*/) {
+    _width = w;
+    _height = h;
+}
+
 // void SingleTimeCommandBuffer::executeAndWait() {
 //     mCommandBuffer.end();
 

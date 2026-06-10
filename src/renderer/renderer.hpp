@@ -7,6 +7,7 @@
 #include "effect_registry.hpp"
 #include "image.hpp"
 #include "image_loader.hpp"
+#include "image_saver.hpp"
 #include "imgui_system.hpp"
 #include "platform.hpp"
 #include "instance.hpp"
@@ -24,7 +25,9 @@
 #include <filesystem>
 #include <memory>
 #include <optional>
+#include <string>
 #include <vector>
+#include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 #include <glm/glm.hpp>
 
@@ -49,10 +52,11 @@ public:
 
     void drawImGui();
     void draw();
+    void runCompute();
     void setPan(glm::vec2&);
     void setZoom(float);
 
-    void changeImage(const std::filesystem::path&);
+    bool changeImage(const std::filesystem::path&);
 
     const Window&       getWindow() const;
     const Instance&     getInstance() const;
@@ -62,13 +66,18 @@ public:
     std::vector<std::unique_ptr<Effect>>& getEffects();
     std::vector<stbi_uc> getCurrentImageData(int& width, int& height, vk::DeviceSize& rowPitch);
 
+    std::future<bool> saveCurrentImage(const std::filesystem::path& path);
+    std::future<bool> saveCurrentImageMask(const std::filesystem::path& path);
+
     void addEffect(const char*);
+    bool hasEffect(const std::string& name);
     
-    void _getMask();
+    void _setMask();
     
     void cleanup();
 private:
     void _calculateScaling();
+    std::vector<unsigned char> _getMask(int& width, int& height, vk::DeviceSize& rowPitch);
 
     Window&               mWindow;
     BackgroundRemover&    mBackgroundRemover;
@@ -97,12 +106,13 @@ private:
 
     Image* mCurrentImage;
     std::optional<Image> mMask;
+    ImageSaver mImageSaver;
 
     glm::vec2 mScale{1.0f, 1.0f};
     glm::vec2 mPan{0.0f, 0.0f};
     float     mZoom{45.0f};
 
-    ImGuiSystem mImGuiSystem;
+    // ImGuiSystem mImGuiSystem;
 
     std::vector<vk::raii::Semaphore> mRenderFinishedSemaphores;
 };

@@ -89,10 +89,16 @@ public:
         vk::ImageLayout oldLayout,
         vk::ImageLayout newLayout
     );
+    void setPushConstant(const vk::raii::PipelineLayout& layout, uint32_t offset, uint32_t size, const void* data);
+    void setDispatchDimension(uint32_t w, uint32_t h/*, uint32_t z*/);
+    void record(uint32_t imageIndex, Image& img, const ComputePipeline& pipeline, DescriptorSet& toBind);
     // ~SingleTimeCommandBuffer();
 private:
     const VulkanDevice& mVulkanDevice;
     const CommandPool&  mCommandPool;
+
+    uint32_t _width{};
+    uint32_t _height{};
 
     vk::raii::CommandBuffer mCommandBuffer{nullptr};
 };

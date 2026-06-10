@@ -1,4 +1,5 @@
 #include "renderer.hpp"
+#include "batch/batch_processor.hpp"
 #include "buffer.hpp"
 #include "commandbuffer.hpp"
 #include "commandpool.hpp"
@@ -15,7 +16,10 @@
 #include "image_saver.hpp"
 
 #include <GLFW/glfw3.h>
+#include <algorithm>
+#include <future>
 #include <iostream>
+#include <iterator>
 #include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_raii.hpp>
 #include <glm/glm.hpp>
@@ -51,10 +55,10 @@ Renderer::Renderer(Window& window, BackgroundRemover& bgRemover)
                                                 {vk::DescriptorType::eCombinedImageSampler, MAX_FRAMES_IN_FLIGHT * 7},
                                                 {vk::DescriptorType::eStorageImage, MAX_FRAMES_IN_FLIGHT * 3}}, .maxSets = MAX_FRAMES_IN_FLIGHT * 4})
     // , mImage(mVulkanDevice, mCommandPool, {ImageLoader::loadImageFromPath("textures/Ichika6.jpeg")})
-    , mImGuiSystem(this, &mBackgroundRemover)
+    // , mImGuiSystem(this, &mBackgroundRemover)
     // , mCommandBuffer{mVulkanDevice, mSwapchain, mCommandPool, mGraphicsPipeline}
     {
-    ImageSaver::initialize();
+    mImageSaver.initialize();
 
     BufferConfig vertexConfig{
         .usage         = vk::BufferUsageFlagBits::eVertexBuffer,
@@ -99,85 +103,11 @@ void Renderer::_calculateScaling() {
     // std::cout << mScale.x << ' ' << mScale.y << '\n';
 }
 
-void Renderer::_getMask() {
-    int width;
-    int height;
-    vk::DeviceSize rowPitch;
-    
-    auto imageData = getCurrentImageData(width, height, rowPitch);
-    
-    // // Pack the Vulkan buffer for the model
-    // std::vector<unsigned char> tightlyPackedRgba(width * height * 4);
-    // for (int y = 0; y < height; ++y) {
-    //     memcpy(
-    //         tightlyPackedRgba.data() + (y * width * 4), 
-    //         imageData.data() + (y * rowPitch), 
-    //         width * 4
-    //     );
-    // }
-
-    // auto mask = mBackgroundRemover.generateMask(tightlyPackedRgba.data(), width, height);
-
-    // std::vector<unsigned char> finalMaskData(width * height * 4);
-
-    // // Calculate the alpha
-    // for (int y = 0; y < height; ++y) {
-    //     for (int x = 0; x < width; ++x) {
-    //         int maskIndex = (y * width) + x;
-    //         int tightlyPackedIndex = (y * width * 4) + (x * 4);
-
-    //         float alpha_float = mask[maskIndex]; 
-    //         unsigned char alpha_byte = static_cast<unsigned char>(alpha_float * 255.0f);
-
-    //         finalMaskData[tightlyPackedIndex + 0] = alpha_byte; // R
-    //         finalMaskData[tightlyPackedIndex + 1] = alpha_byte; // G
-    //         finalMaskData[tightlyPackedIndex + 2] = alpha_byte; // B
-    //         finalMaskData[tightlyPackedIndex + 3] = alpha_byte; // A
-    //     }
-    // }
-
-    // Pack the Vulkan buffer for the model and flip it 180 degrees since the model works better when the image is flipped for some reason
-    std::vector<unsigned char> tightlyPackedRgba(width * height * 4);
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
-            // Read from normal coordinates (with rowPitch padding)
-            int srcPixelOffset = (y * rowPitch) + (x * 4);
-            
-            // Write to flipped coordinates (Bottom-to-Top, Right-to-Left)
-            int flippedY = (height - 1) - y;
-            int flippedX = (width - 1) - x;
-            int dstPixelOffset = (flippedY * width * 4) + (flippedX * 4);
-
-            tightlyPackedRgba[dstPixelOffset + 0] = imageData[srcPixelOffset + 0];
-            tightlyPackedRgba[dstPixelOffset + 1] = imageData[srcPixelOffset + 1];
-            tightlyPackedRgba[dstPixelOffset + 2] = imageData[srcPixelOffset + 2];
-            tightlyPackedRgba[dstPixelOffset + 3] = imageData[srcPixelOffset + 3];
-        }
-    }
-
-    auto mask = mBackgroundRemover.generateMask(tightlyPackedRgba.data(), width, height);
-
-    std::vector<unsigned char> finalMaskData(width * height * 4);
-
-    // Calculate the alpha and unflip the mask
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
-            int flippedY = (height - 1) - y;
-            int flippedX = (width - 1) - x;
-            int maskIndex = (flippedY * width) + flippedX;
-
-            // write to the normal coordinates
-            int normalPackedIndex = (y * width * 4) + (x * 4);
-
-            float alpha_float = mask[maskIndex]; 
-            unsigned char alpha_byte = static_cast<unsigned char>(alpha_float * 255.0f);
-
-            finalMaskData[normalPackedIndex + 0] = alpha_byte; // R
-            finalMaskData[normalPackedIndex + 1] = alpha_byte; // G
-            finalMaskData[normalPackedIndex + 2] = alpha_byte; // B
-            finalMaskData[normalPackedIndex + 3] = alpha_byte; // A
-        }
-    }
+void Renderer::_setMask() {
+    int width{};
+    int height{};
+    vk::DeviceSize rowPitch{};
+    auto finalMaskData{_getMask(width, height, rowPitch)};
 
     ImageLoadResult res {
         .texWidth    = width,
@@ -224,10 +154,10 @@ void Renderer::_getMask() {
     }
 }
 
-void Renderer::drawImGui() {
-    mImGuiSystem.newFrame();
-    mImGuiSystem.render();
-}
+// void Renderer::drawImGui() {
+//     mImGuiSystem.newFrame();
+//     mImGuiSystem.render();
+// }
 
 #define COMPUTE
 #ifndef COMPUTE
@@ -530,6 +460,60 @@ void Renderer::draw() {
 }
 #endif
 
+void Renderer::runCompute() {
+    Image* currentImage = &mImage.value();
+    auto _w = currentImage->getImageLoader().getResult().texWidth;
+    auto _h = currentImage->getImageLoader().getResult().texHeight;
+    mCurrentImage = currentImage;
+    Image* currentWrite{nullptr};
+    DescriptorSet* currentSetToBind{nullptr};
+    int totalActiveEffects{0};
+    for (const auto& e : mEffects) {
+        if (e->mIsEnabled) {
+            totalActiveEffects++;
+        }
+    }
+    if (totalActiveEffects > 0) {
+        SingleTimeCommandBuffer cmdBuffer{mVulkanDevice, mCommandPool};
+        cmdBuffer.setDispatchDimension(_w, _h);
+        // auto& frame = mFrameDatas[0];
+        
+        int activeEffectIndex{0};
+        for (size_t i{0}; i < mEffects.size(); ++i) {
+            if (!mEffects[i]->mIsEnabled) continue;
+            for (int pass{0}; pass < mEffects[i]->getPasses(); ++pass) {
+                float currentTime = static_cast<float>(fmod(glfwGetTime(), 1000.0));
+                if (mEffects[i]->getName() == "Gaussian Noise" || mEffects[i]->getName() == "Salt and Pepper") {
+                    mEffects[i]->setSeed(currentTime);
+                }
+                
+                if (activeEffectIndex == 0) {
+                    currentSetToBind = &mComputeDescriptorSetsInit[mCurrentFrame];
+                    currentWrite = &mFrameDatas[mCurrentFrame].ping.value();
+                } else if (activeEffectIndex % 2 == 1) {
+                    currentSetToBind = &mComputeDescriptorSetsAtoB[mCurrentFrame];
+                    currentWrite = &mFrameDatas[mCurrentFrame].pong.value();
+                } else {
+                    currentSetToBind = &mComputeDescriptorSetsBtoA[mCurrentFrame];
+                    currentWrite = &mFrameDatas[mCurrentFrame].ping.value();
+                }
+    
+                if (mEffects[i]->usePushConstant()) {
+                    std::vector<uint8_t> pushData{mEffects[i]->getPackedPushConstants(pass)};
+                    cmdBuffer.setPushConstant(mEffects[i]->getPipeline().getLayout(), 0, static_cast<uint32_t>(pushData.size()), pushData.data());
+                }
+    
+                cmdBuffer.record(0, *currentWrite, mEffects[i]->getPipeline(), *currentSetToBind);
+    
+                currentImage = currentWrite;
+                mCurrentImage = currentImage;
+                activeEffectIndex++;
+            }
+        }
+        cmdBuffer.executeAndWait();
+    }
+}
+
 void Renderer::setPan(glm::vec2& v) {
     mPan = glm::vec2(v);
 }
@@ -562,12 +546,12 @@ std::vector<std::unique_ptr<Effect>>& Renderer::getEffects() {
     return mEffects;
 }
 
-void Renderer::changeImage(const std::filesystem::path& path) {
+bool Renderer::changeImage(const std::filesystem::path& path) {
     ImageConfig maskConfig{
         .image = ImageLoader::loadImageFromPath("textures/Black.png")
     };
     mVulkanDevice.getVkHandle().waitIdle();
-    if (!maskConfig.image.mValid) return;
+    if (!maskConfig.image.mValid) return false;
 
     mMask.emplace(mVulkanDevice, mCommandPool, maskConfig);
 
@@ -575,7 +559,7 @@ void Renderer::changeImage(const std::filesystem::path& path) {
         .image = ImageLoader::loadImageFromPath(path)
     };
     mVulkanDevice.getVkHandle().waitIdle();
-    if (!imageConfig.image.mValid) return;
+    if (!imageConfig.image.mValid) return false;
 
     mImage.emplace(mVulkanDevice, mCommandPool, imageConfig);
 
@@ -687,11 +671,18 @@ void Renderer::changeImage(const std::filesystem::path& path) {
         });
     }
     _calculateScaling();
+
+    mCurrentImage = &*mImage;
+    if (hasEffect("Background Remover")) {
+        _setMask();
+    }
+    
     mVulkanDevice.getVkHandle().waitIdle();
+    return true;
 }
 
 /*
-return the raw data (stbi_uc*) of the current image, and make a copy of that image property (width, height) + rowPitch (for stbi_write_png)
+return the raw data (stbi_uc*) of the current image (not tightly packed), and make a copy of that image property (width, height) + rowPitch (for stbi_write_png)
 Note: Image must be created with VK_IMAGE_USAGE_TRANSFER_SRC_BIT flag
 */
 std::vector<stbi_uc> Renderer::getCurrentImageData(int& width, int& height, vk::DeviceSize& rowPitch) {
@@ -869,13 +860,94 @@ std::vector<stbi_uc> Renderer::getCurrentImageData(int& width, int& height, vk::
     return cpyData;
 }
 
+std::future<bool> Renderer::saveCurrentImage(const std::filesystem::path& path) {
+    int width{};
+    int height{};
+    vk::DeviceSize rowPitch{};
+    auto imageData{getCurrentImageData(width, height, rowPitch)};
+
+    return mImageSaver.saveImage(path, std::move(imageData), width, height, rowPitch); // rowPitch because it's not tightly packed
+}
+
+std::future<bool> Renderer::saveCurrentImageMask(const std::filesystem::path& path) {
+    int width{};
+    int height{};
+    vk::DeviceSize rowPitch{};
+    auto maskData{_getMask(width, height, rowPitch)};
+
+    return mImageSaver.saveImage(path, std::move(maskData), width, height, width * 4); // width * 4 because it's tightly packed
+}
+
+std::vector<unsigned char> Renderer::_getMask(int& width, int& height, vk::DeviceSize& rowPitch) {
+    int _width;
+    int _height;
+    vk::DeviceSize _rowPitch;
+    
+    auto imageData = getCurrentImageData(_width, _height, _rowPitch);
+    width  = _width;
+    height = _height;
+    rowPitch = _rowPitch;
+    
+    // Pack the Vulkan buffer for the model and flip it 180 degrees since the model works better when the image is flipped for some reason
+    std::vector<unsigned char> tightlyPackedRgba(width * height * 4);
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            // Read from normal coordinates (with rowPitch padding)
+            int srcPixelOffset = (y * rowPitch) + (x * 4);
+            
+            // Write to flipped coordinates (Bottom-to-Top, Right-to-Left)
+            int flippedY = (height - 1) - y;
+            int flippedX = (width - 1) - x;
+            int dstPixelOffset = (flippedY * width * 4) + (flippedX * 4);
+
+            tightlyPackedRgba[dstPixelOffset + 0] = imageData[srcPixelOffset + 0];
+            tightlyPackedRgba[dstPixelOffset + 1] = imageData[srcPixelOffset + 1];
+            tightlyPackedRgba[dstPixelOffset + 2] = imageData[srcPixelOffset + 2];
+            tightlyPackedRgba[dstPixelOffset + 3] = imageData[srcPixelOffset + 3];
+        }
+    }
+
+    auto mask = mBackgroundRemover.generateMask(tightlyPackedRgba.data(), width, height);
+
+    std::vector<unsigned char> finalMaskData(width * height * 4);
+
+    // Calculate the alpha and unflip the mask
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            int flippedY = (height - 1) - y;
+            int flippedX = (width - 1) - x;
+            int maskIndex = (flippedY * width) + flippedX;
+
+            // write to the normal coordinates
+            int normalPackedIndex = (y * width * 4) + (x * 4);
+
+            float alpha_float = mask[maskIndex]; 
+            unsigned char alpha_byte = static_cast<unsigned char>(alpha_float * 255.0f);
+
+            finalMaskData[normalPackedIndex + 0] = alpha_byte; // R
+            finalMaskData[normalPackedIndex + 1] = alpha_byte; // G
+            finalMaskData[normalPackedIndex + 2] = alpha_byte; // B
+            finalMaskData[normalPackedIndex + 3] = alpha_byte; // A
+        }
+    }
+
+    return finalMaskData;
+}
+
 void Renderer::addEffect(const char* name) {
     mEffects.emplace_back(std::make_unique<Effect>(mVulkanDevice, mComputeDescriptorSetLayout, *mEffectRegistry.getByName(name)));
 } 
 
+bool Renderer::hasEffect(const std::string& name) {
+    return std::ranges::find_if(mEffects, [&](const auto& e) {
+        return e->getName() == name;
+    }) != mEffects.end();
+}
+
+
 void Renderer::cleanup() {
     mVulkanDevice.getVkHandle().waitIdle();
-    mImGuiSystem.cleanup();
+    // mImGuiSystem.cleanup();
     mImage.reset();
     for (size_t i{0}; i < MAX_FRAMES_IN_FLIGHT; ++i) {
         mFrameDatas[i].ping.reset();

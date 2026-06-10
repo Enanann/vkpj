@@ -1,5 +1,6 @@
 #include "imgui_system.hpp"
 
+#include "batch/batch_processor.hpp"
 #include "constant.hpp"
 #include "platform.hpp"
 #include "renderer.hpp"
@@ -16,9 +17,10 @@
 #include <iostream>
 #include <utility>
 
-ImGuiSystem::ImGuiSystem(Renderer* renderer, BackgroundRemover* bgRemover) 
+ImGuiSystem::ImGuiSystem(Renderer* renderer, BackgroundRemover* bgRemover, BatchProcessor* batchProcessor) 
     : mRenderer{renderer}
     , mBackgroundRemover{bgRemover}
+    , mBatchProcessor{batchProcessor}
     , mDescriptorPool{mRenderer->getDevice(), {.sizes = {{vk::DescriptorType::eSampler, 1000},
 			                                    {vk::DescriptorType::eCombinedImageSampler, 1000},
 			                                    {vk::DescriptorType::eSampledImage, 1000},
@@ -79,6 +81,7 @@ ImGuiSystem::ImGuiSystem(Renderer* renderer, BackgroundRemover* bgRemover)
     }
 
     mSaveAction = SaveAction::None;
+    mFolderState = FolderState::None;
 }
 
 void ImGuiSystem::newFrame() {
@@ -109,22 +112,16 @@ void ImGuiSystem::render() {
     }
 
     if (ImGui::Begin("Save image")) {
-        ImGui::BeginDisabled(mSaveJob && !mSaveJob->finished);
+        // ImGui::BeginDisabled(mSaveJob && finished);
         if (ImGui::Button("Save image")) {
             mSaveAction = SaveAction::SaveImage;
             mDirectoryBrowser.Open();
         }
-        ImGui::EndDisabled();
-    }
-    ImGui::End();
-
-    if (ImGui::Begin("Save image mask")) {
-        ImGui::BeginDisabled(mSaveJob && !mSaveJob->finished);
-        if (ImGui::Button("Save image mask")) {
+        if (ImGui::Button("Save mask ")) {
             mSaveAction = SaveAction::SaveMask;
             mDirectoryBrowser.Open();
         }
-        ImGui::EndDisabled();
+        // ImGui::EndDisabled();
     }
     ImGui::End();
 
@@ -134,11 +131,11 @@ void ImGuiSystem::render() {
         auto path{mDirectoryBrowser.GetSelected()};
 
         switch (mSaveAction) {
-            case SaveAction::SaveImage:
-                mSaveJob = ImageSaver::saveImage(path, mRenderer);
+            case SaveAction::SaveImage: 
+                mFinished = mRenderer->saveCurrentImage(path);
                 break;
             case SaveAction::SaveMask:
-                mSaveJob = ImageSaver::saveMask(path, mRenderer, mBackgroundRemover);
+                mFinished = mRenderer->saveCurrentImageMask(path);
                 break;
             default:
                 break;
@@ -146,6 +143,79 @@ void ImGuiSystem::render() {
 
         mSaveAction = SaveAction::None;
         mDirectoryBrowser.ClearSelected();
+    }
+
+    if(ImGui::Begin("Batch process")) {
+        // open file dialog when user clicks this button
+        // input folder
+        ImGui::Text("Input Folder:");
+        ImGui::SameLine();
+
+        if (mFolders[0].empty())
+            ImGui::TextDisabled("Not selected");
+        else
+            ImGui::TextWrapped("%s", mFolders[0].string().c_str());
+
+        if(ImGui::Button("Choose Input Folder")) {
+            mFolderState = FolderState::Input;
+            mFolderBrowser.Open();
+        }
+        
+        ImGui::Separator();
+        // output folder
+        ImGui::Text("Output Folder:");
+        ImGui::SameLine();
+
+        if (mFolders[1].empty())
+            ImGui::TextDisabled("Not selected");
+        else
+            ImGui::TextWrapped("%s", mFolders[1].string().c_str());
+
+        if (ImGui::Button("Select Output Folder"))
+        {
+            mFolderState = FolderState::Output;
+            mFolderBrowser.Open();
+        }
+
+
+        // batch
+        ImGui::Separator();
+
+        bool ready = !mFolders[0].empty() && !mFolders[1].empty();
+
+        if (!ready) {
+            ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "Please select both input and output folders");
+        }
+
+        ImGui::BeginDisabled(!ready);
+        if (ImGui::Button("Start Batch Process")) {
+            mBatchProcessor->start(mFolders[0], mFolders[1], SaveAction::SaveImage);
+        }
+        ImGui::EndDisabled();
+    }
+    ImGui::End();    
+
+    mFolderBrowser.Display();
+    
+    if(mFolderBrowser.HasSelected()) {
+        auto path{mFolderBrowser.GetSelected()};
+        switch (mFolderState) {
+            case FolderState::Input:
+            {
+                mFolders[0] = path;
+                break;
+            } 
+            case FolderState::Output:
+            {
+                mFolders[1] = path;       
+                break;
+            }
+            default:
+                break;  
+        }
+        
+        mFolderState = FolderState::None;
+        mFolderBrowser.ClearSelected();
     }
 
     if (ImGui::Begin("Effects")) {
@@ -278,7 +348,7 @@ void ImGuiSystem::render() {
                 mRenderer->addEffect("Canny");
             }
             if (ImGui::Selectable("Background Remover")) {
-                mRenderer->_getMask();
+                mRenderer->_setMask();
                 mRenderer->addEffect("Background Remover");
             }
 
