@@ -11,6 +11,8 @@ set(SOURCES
     input_manager.cpp
     rmbg.cpp
     threadpool.cpp
+
+    batch/batch_processor.cpp
     
     core/device.cpp 
     core/glfw_surface.cpp 

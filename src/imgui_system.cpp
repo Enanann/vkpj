@@ -1,5 +1,6 @@
 #include "imgui_system.hpp"
 
+#include "batch/batch_processor.hpp"
 #include "constant.hpp"
 #include "platform.hpp"
 #include "renderer.hpp"
@@ -16,9 +17,10 @@
 #include <iostream>
 #include <utility>
 
-ImGuiSystem::ImGuiSystem(Renderer* renderer, BackgroundRemover* bgRemover) 
+ImGuiSystem::ImGuiSystem(Renderer* renderer, BackgroundRemover* bgRemover, BatchProcessor* batchProcessor) 
     : mRenderer{renderer}
     , mBackgroundRemover{bgRemover}
+    , mBatchProcessor{batchProcessor}
     , mDescriptorPool{mRenderer->getDevice(), {.sizes = {{vk::DescriptorType::eSampler, 1000},
 			                                    {vk::DescriptorType::eCombinedImageSampler, 1000},
 			                                    {vk::DescriptorType::eSampledImage, 1000},
@@ -79,6 +81,7 @@ ImGuiSystem::ImGuiSystem(Renderer* renderer, BackgroundRemover* bgRemover)
     }
 
     mSaveAction = SaveAction::None;
+    mFolderState = FolderState::None;
 }
 
 void ImGuiSystem::newFrame() {
@@ -146,6 +149,49 @@ void ImGuiSystem::render() {
 
         mSaveAction = SaveAction::None;
         mDirectoryBrowser.ClearSelected();
+    }
+
+    if(ImGui::Begin("Testing")) {
+        // open file dialog when user clicks this button
+        if(ImGui::Button("Choose folder")) {
+            mFolderState = FolderState::Input;
+            mFolderBrowser.Open();
+        }
+    }
+    ImGui::End();    
+
+    mFolderBrowser.Display();
+    
+    if(mFolderBrowser.HasSelected()) {
+        auto path{mFolderBrowser.GetSelected()};
+        switch (mFolderState) {
+            case FolderState::Input:
+            {
+                mFolders[0] = path;
+                mFolderState = FolderState::Output;
+
+                mFolderBrowser.ClearSelected();
+                mFolderBrowser.Open();
+
+                break;
+            } 
+            case FolderState::Output:
+            {
+                mFolders[1] = path;
+                mFolderState = FolderState::None;
+
+                mBatchProcessor->start(mFolders[0], mFolders[1], SaveAction::SaveImage);
+                
+                for (const auto& p : mFolders) {
+                    std::cout << "Selected folder" << p << std::endl;
+                }
+
+                break;
+            }
+            default:
+                break;
+        }
+        mFolderBrowser.ClearSelected();
     }
 
     if (ImGui::Begin("Effects")) {
