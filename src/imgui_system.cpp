@@ -117,13 +117,7 @@ void ImGuiSystem::render() {
             mSaveAction = SaveAction::SaveImage;
             mDirectoryBrowser.Open();
         }
-        // ImGui::EndDisabled();
-    }
-    ImGui::End();
-
-    if (ImGui::Begin("Save image mask")) {
-        // ImGui::BeginDisabled(mSaveJob && !mSaveJob->finished);
-        if (ImGui::Button("Save image mask")) {
+        if (ImGui::Button("Save mask ")) {
             mSaveAction = SaveAction::SaveMask;
             mDirectoryBrowser.Open();
         }
@@ -151,12 +145,53 @@ void ImGuiSystem::render() {
         mDirectoryBrowser.ClearSelected();
     }
 
-    if(ImGui::Begin("Testing")) {
+    if(ImGui::Begin("Batch process")) {
         // open file dialog when user clicks this button
-        if(ImGui::Button("Choose folder")) {
+        // input folder
+        ImGui::Text("Input Folder:");
+        ImGui::SameLine();
+
+        if (mFolders[0].empty())
+            ImGui::TextDisabled("Not selected");
+        else
+            ImGui::TextWrapped("%s", mFolders[0].string().c_str());
+
+        if(ImGui::Button("Choose Input Folder")) {
             mFolderState = FolderState::Input;
             mFolderBrowser.Open();
         }
+        
+        ImGui::Separator();
+        // output folder
+        ImGui::Text("Output Folder:");
+        ImGui::SameLine();
+
+        if (mFolders[1].empty())
+            ImGui::TextDisabled("Not selected");
+        else
+            ImGui::TextWrapped("%s", mFolders[1].string().c_str());
+
+        if (ImGui::Button("Select Output Folder"))
+        {
+            mFolderState = FolderState::Output;
+            mFolderBrowser.Open();
+        }
+
+
+        // batch
+        ImGui::Separator();
+
+        bool ready = !mFolders[0].empty() && !mFolders[1].empty();
+
+        if (!ready) {
+            ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "Please select both input and output folders");
+        }
+
+        ImGui::BeginDisabled(!ready);
+        if (ImGui::Button("Start Batch Process")) {
+            mBatchProcessor->start(mFolders[0], mFolders[1], SaveAction::SaveImage);
+        }
+        ImGui::EndDisabled();
     }
     ImGui::End();    
 
@@ -168,29 +203,18 @@ void ImGuiSystem::render() {
             case FolderState::Input:
             {
                 mFolders[0] = path;
-                mFolderState = FolderState::Output;
-
-                mFolderBrowser.ClearSelected();
-                mFolderBrowser.Open();
-
                 break;
             } 
             case FolderState::Output:
             {
-                mFolders[1] = path;
-                mFolderState = FolderState::None;
-
-                mBatchProcessor->start(mFolders[0], mFolders[1], SaveAction::SaveImage);
-                
-                for (const auto& p : mFolders) {
-                    std::cout << "Selected folder" << p << std::endl;
-                }
-
+                mFolders[1] = path;       
                 break;
             }
             default:
-                break;
+                break;  
         }
+        
+        mFolderState = FolderState::None;
         mFolderBrowser.ClearSelected();
     }
 
