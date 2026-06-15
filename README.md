@@ -17,13 +17,13 @@ An image processing application built with the Vulkan API.
 * **GLFW**: Window manager (Install with `vcpkg` or OS-specific package manager)
 * **ncnn**: For background remover (Install with `vcpkg` or OS-specific package manager)
 
-`GLM`, `stb_image`, `Dear ImGui` are in the `external` directory. No additional installation required.
+`stb_image`, `Dear ImGui` are in the `external` directory. No additional installation required.
 
 ## Build Instructions
 
-If using vcpkg to install (e.g. GLFW)
+If using vcpkg to install
 ```bash
-vcpkg install glfw3
+vcpkg install glfw3 glm ncnn[vulkan]
 ```
 
 After cloning the project (see below), download the models from the Release pages (The application uses the IS-Net model for best-quality background removal). Put the .param and .bin file into models/ (same directory as src/).
